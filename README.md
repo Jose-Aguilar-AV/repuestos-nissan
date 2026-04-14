@@ -1,100 +1,155 @@
-# Capitalia - Plataforma de Transacciones
+# 🚗 Sistema de Repuestos Nissan
 
-Plataforma web para simular y gestionar transacciones financieras, permitiendo a los usuarios visualizar su saldo, historial de transacciones y rendimiento de portafolios de inversión de manera clara e interactiva.
-
----
-
-## Tecnologías utilizadas
-
-- Frontend: React.js, Chart.js, react-chartjs-2, react-router-dom
-- Backend: Node.js, Express
-- Base de datos: MySQL
-- Servidor local opcional: XAMPP
-- Gestión de peticiones HTTP: Axios
+Aplicación web fullstack para la gestión y compra de repuestos de vehículos Nissan.
+Incluye autenticación de usuarios, catálogo de productos, carrito de compras y gestión de pedidos.
 
 ---
 
-## Instalación
+## 📸 Vista previa
 
-1. Clonar el repositorio:
-git clone https://github.com/tu-usuario/tu-repositorio.git
-cd tu-repositorio
+![preview](https://via.placeholder.com/900x400?text=Nissan+Store+Preview)
 
-2. Instalar dependencias del frontend:
+---
+
+## 🚀 Funcionalidades
+
+* 🔐 Login de usuarios
+* 🛒 Carrito de compras
+* 📦 Creación de pedidos
+* 📋 Historial de pedidos por usuario
+* 📦 Gestión de repuestos
+* 🔎 Visualización de stock
+
+---
+
+## 🛠️ Tecnologías
+
+### Frontend
+
+* React (Vite)
+* React Router
+* CSS inline / estilos personalizados
+
+### Backend
+
+* Node.js
+* Express
+
+### Base de Datos
+
+* MySQL (XAMPP)
+
+---
+
+## 📁 Estructura del proyecto
+
+```
+proyecto/
+│
+├── client/        # Frontend (React)
+│   ├── src/
+│   │   ├── pages/
+│   │   ├── components/
+│   │   ├── services/
+│   │   └── store/
+│
+├── server/        # Backend (Node + Express)
+│   ├── index.js
+│
+└── README.md
+```
+
+---
+
+## ⚙️ Instalación
+
+### 1. Clonar repositorio
+
+```
+git clone https://github.com/TU_USUARIO/repuestos-nissan.git
+cd repuestos-nissan
+```
+
+---
+
+### 2. Backend
+
+```
+cd server
+npm install
+node index.js
+```
+
+Servidor en:
+
+```
+http://localhost:3000
+```
+
+---
+
+### 3. Frontend
+
+```
 cd client
 npm install
+npm run dev
+```
 
-3. Instalar dependencias del backend:
-cd ../server
-npm install
+App en:
 
-4. Configurar la base de datos MySQL:
-- Crear una base de datos llamada 'transacciones'.
-- Ejecutar los scripts SQL de creación de tablas en '/server/db'.
-- Ajustar credenciales en 'server/config.js' o archivo de configuración correspondiente.
-
-5. Iniciar la aplicación:
-# Backend
-cd server
-npm start
-
-# Frontend
-cd ../client
-npm start
-
-La aplicación estará disponible en http://localhost:3000
+```
+http://localhost:5173
+```
 
 ---
 
-## Funcionalidades principales
+## 🗄️ Base de Datos
 
-- Registro de transacciones de compra y venta.
-- Visualización de saldo actual y portafolio.
-- Gráficos interactivos de rendimiento histórico.
-- Tarjetas informativas expandibles para cada sección.
-- Sistema modular para agregar nuevas acciones o inversiones.
+Importar en MySQL (XAMPP):
 
----
-
-## Configuración adicional
-
-- MySQL debe correr en el puerto configurado (por defecto 3306).
-- Ejecutar XAMPP como administrador si se usa Windows.
-- Revisar logs en 'xampp/mysql/data/mysql_error.log' ante errores de MySQL.
+* Crear base de datos
+* Ejecutar scripts SQL (tablas de usuario, repuesto, pedido, detalle_pedido)
 
 ---
 
-## Estructura del proyecto
+## 🔐 Autenticación
 
-/client        # Frontend en React
-/server        # Backend en Node.js/Express
-/server/db     # Scripts SQL para la base de datos
+El sistema usa:
 
----
-
-## Contribuciones
-
-Para agregar funcionalidades o mejoras:
-
-1. Hacer fork del repositorio.
-2. Crear una rama con la nueva funcionalidad:
-git checkout -b nueva-funcionalidad
-3. Hacer commit y push.
-4. Crear un Pull Request describiendo los cambios.
+* Token guardado en `localStorage`
+* Protección de rutas en frontend
+* Validación de sesión antes de crear pedidos
 
 ---
 
-## Licencia
+## 📦 Flujo de compra
 
-Este proyecto está bajo la licencia MIT.
+1. Usuario inicia sesión
+2. Navega por el catálogo
+3. Agrega repuestos al carrito
+4. Confirma pedido
+5. Visualiza historial de pedidos
 
 ---
 
-## Autores
+## 🧠 Mejoras futuras
 
-- Jose Aguilar - 2221889
-- Yiber Romero - 2221835
-- Emerson Lopez - 2225507
+* ✅ Sistema de roles (admin / usuario)
+* ✅ Gestión de inventario automática
+* ✅ Filtros por modelo de vehículo
+* ✅ Pasarela de pagos
+* ✅ Deploy en la nube
 
-Grupo: Ipsum dolor
-Plataforma: Capitalia
+---
+
+## 👨‍💻 Autor
+
+**Joseph Vargas**
+Proyecto académico / portafolio
+
+---
+
+## 📄 Licencia
+
+## Este proyecto es de uso educativo.
