@@ -107,4 +107,69 @@ app.get("/api/pedidos", (req, res) => {
   });
 });
 
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+const SECRET = "secreto123";
+// 🔐 LOGIN
+app.post("/api/login", (req, res) => {
+  const { correo, contrasena } = req.body;
+
+  db.query(
+    "SELECT * FROM usuario WHERE correo = ?",
+    [correo],
+    async (err, result) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Error servidor" });
+      }
+
+      if (result.length === 0) {
+        return res.status(401).json({ error: "Usuario no existe" });
+      }
+
+      const user = result[0];
+
+      // ⚠️ TEMPORAL (porque seguro guardaste sin hash)
+      if (contrasena !== user.contrasena_hash) {
+        return res.status(401).json({ error: "Contraseña incorrecta" });
+      }
+
+      // ✅ RESPUESTA
+      res.json({
+        token: "fake-token",
+        user: {
+          id: user.id,
+          nombre: user.nombre,
+          correo: user.correo,
+          rol: user.rol
+        }
+      });
+    }
+  );
+});
+
+app.post("/api/register", async (req, res) => {
+  const { nombre, correo, password } = req.body;
+
+  if (!nombre || !correo || !password) {
+    return res.status(400).json({ error: "Datos incompletos" });
+  }
+
+  const hash = await bcrypt.hash(password, 10);
+
+  db.query(
+    "INSERT INTO usuario (nombre, correo, contrasena_hash) VALUES (?, ?, ?)",
+    [nombre, correo, hash],
+    (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Error al registrar" });
+      }
+
+      res.json({ mensaje: "Usuario creado" });
+    }
+  );
+});
+
 app.listen(3000, () => console.log("Servidor backend en 3000"));

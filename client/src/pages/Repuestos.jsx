@@ -26,9 +26,17 @@ export default function Repuestos() {
 
             <button
               style={btn}
-              onClick={() =>
-                add({ id_repuesto: r.id_repuesto, cantidad: 1 })
-              }
+              onClick={() => {
+                const token = localStorage.getItem("token");
+
+                if (!token) {
+                  alert("Debes iniciar sesión");
+                  window.location.href = "/login";
+                  return;
+                }
+
+                add({ id_repuesto: r.id_repuesto, cantidad: 1 });
+                }}
             >
               🛒 Agregar
             </button>

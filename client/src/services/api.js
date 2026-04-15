@@ -6,15 +6,23 @@ export const getRepuestos = () =>
 export const getRepuesto = (id) =>
   fetch(`${API}/repuestos/${id}`).then(r => r.json());
 
-export const getStock = (id) =>
-  fetch(`${API}/repuestos/${id}/stock`).then(r => r.json());
 
-export const crearPedido = (data) =>
-  fetch(`${API}/pedidos`, {
+
+export const crearPedido = async (data) => {
+  const res = await fetch(`${API}/pedidos`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
-  }).then(r => r.json());
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    throw new Error(json.error || "Error al crear pedido");
+  }
+
+  return json;
+};
 
 export const getPedidos = () =>
   fetch(`${API}/pedidos`).then(r => r.json());
