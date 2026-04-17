@@ -7,6 +7,8 @@ import Repuestos from "./pages/Repuestos";
 import CrearPedido from "./pages/CrearPedido";
 import Pedidos from "./pages/Pedidos";
 import Login from "./pages/login";
+import PedidoDetalle from "./pages/PedidoDetalle";
+
 
 function App() {
   return (
@@ -36,6 +38,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/pedido/:id"
+          element={
+            <ProtectedRoute>
+              <PedidoDetalle />
+            </ProtectedRoute>
+          }
+        />
+
       </Routes>
     </>
   );

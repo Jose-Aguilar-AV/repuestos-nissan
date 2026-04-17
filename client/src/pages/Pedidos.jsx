@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getPedidos } from "../services/api";
 
 export default function Pedidos() {
   const [data, setData] = useState([]);
+  const navigate = useNavigate();
+
+  const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
-    getPedidos().then(setData);
+    if (user) {
+      getPedidos(user.id).then(setData);
+    }
   }, []);
+
+
 
   return (
     <div style={container}>
@@ -22,7 +30,9 @@ export default function Pedidos() {
 
               <p>
                 <b>Estado:</b>{" "}
-                <span style={estado}>{p.estadoActual || "PENDIENTE"}</span>
+                <span style={estado}>
+                  {p.nombre_estado}
+                </span>
               </p>
 
               <p>
@@ -30,8 +40,11 @@ export default function Pedidos() {
                 {new Date(p.fecha_creacion).toLocaleString()}
               </p>
 
-              <button style={btnVer}>
-                Ver detalles
+              <button
+                style={btnVer}
+                onClick={() => navigate(`/pedido/${p.id_pedido}`)}
+              >
+                Ver detalle
               </button>
             </div>
           ))}
@@ -70,6 +83,7 @@ const card = {
   borderRadius: 12,
   background: "#fff",
   boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+  transition: "0.2s",
 };
 
 const pedido = {
