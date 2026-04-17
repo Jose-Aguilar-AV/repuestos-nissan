@@ -64,7 +64,7 @@ app.post("/api/pedidos", (req, res) => {
 
   // 1. Crear pedido
   db.query(
-    "INSERT INTO pedido (id_cliente, id_usuario, estadoActual, fechaCreacion) VALUES (?, ?, 'PENDIENTE', NOW())",
+    "INSERT INTO pedido (id_cliente, id_usuario, estadoActual, fecha_creacion) VALUES (?, ?, 'PENDIENTE', NOW())",
     [id_cliente, id_usuario],
     (err, result) => {
       if (err) {
@@ -113,16 +113,14 @@ const jwt = require("jsonwebtoken");
 const SECRET = "secreto123";
 // 🔐 LOGIN
 app.post("/api/login", (req, res) => {
-  const { correo, contrasena } = req.body;
+  const correo = req.body.correo.trim();
+  const password = req.body.password.trim();
 
   db.query(
     "SELECT * FROM usuario WHERE correo = ?",
     [correo],
     async (err, result) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "Error servidor" });
-      }
+      if (err) return res.status(500).json({ error: "Error servidor" });
 
       if (result.length === 0) {
         return res.status(401).json({ error: "Usuario no existe" });
@@ -130,20 +128,24 @@ app.post("/api/login", (req, res) => {
 
       const user = result[0];
 
-      // ⚠️ TEMPORAL (porque seguro guardaste sin hash)
-      if (contrasena !== user.contrasena_hash) {
+      const match = await bcrypt.compare(password, user.contrasena_hash);
+
+      if (!match) {
         return res.status(401).json({ error: "Contraseña incorrecta" });
       }
 
-      // ✅ RESPUESTA
+      const token = jwt.sign({ id: user.id }, SECRET, {
+        expiresIn: "1h",
+      });
+
       res.json({
-        token: "fake-token",
+        token,
         user: {
           id: user.id,
           nombre: user.nombre,
           correo: user.correo,
-          rol: user.rol
-        }
+          rol: user.rol,
+        },
       });
     }
   );
