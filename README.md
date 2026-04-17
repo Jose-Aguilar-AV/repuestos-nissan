@@ -1,4 +1,4 @@
-# 🚗 Sistema de Repuestos Nissan
+# Sistema de Repuestos Nissan
 
 Aplicación web fullstack para la gestión y compra de repuestos de vehículos Nissan.
 Incluye autenticación de usuarios, catálogo de productos, carrito de compras y gestión de pedidos.
@@ -11,7 +11,7 @@ Incluye autenticación de usuarios, catálogo de productos, carrito de compras y
 
 ---
 
-## 🚀 Funcionalidades
+## Funcionalidades
 
 * 🔐 Login de usuarios
 * 🛒 Carrito de compras
@@ -22,7 +22,7 @@ Incluye autenticación de usuarios, catálogo de productos, carrito de compras y
 
 ---
 
-## 🛠️ Tecnologías
+## Tecnologías
 
 ### Frontend
 
@@ -41,7 +41,7 @@ Incluye autenticación de usuarios, catálogo de productos, carrito de compras y
 
 ---
 
-## 📁 Estructura del proyecto
+## Estructura del proyecto
 
 ```
 proyecto/
@@ -61,12 +61,12 @@ proyecto/
 
 ---
 
-## ⚙️ Instalación
+## Instalación
 
 ### 1. Clonar repositorio
 
 ```
-git clone https://github.com/TU_USUARIO/repuestos-nissan.git
+git clone https://github.com/Jose-Aguilar-AV/repuestos-nissan.git
 cd repuestos-nissan
 ```
 
@@ -104,7 +104,7 @@ http://localhost:5173
 
 ---
 
-## 🗄️ Base de Datos
+## Base de Datos
 
 Importar en MySQL (XAMPP):
 
@@ -113,7 +113,7 @@ Importar en MySQL (XAMPP):
 
 ---
 
-## 🔐 Autenticación
+## Autenticación
 
 El sistema usa:
 
@@ -123,7 +123,7 @@ El sistema usa:
 
 ---
 
-## 📦 Flujo de compra
+## Flujo de compra
 
 1. Usuario inicia sesión
 2. Navega por el catálogo
@@ -133,7 +133,7 @@ El sistema usa:
 
 ---
 
-## 🧠 Mejoras futuras
+## Mejoras futuras
 
 * ✅ Sistema de roles (admin / usuario)
 * ✅ Gestión de inventario automática
@@ -143,13 +143,13 @@ El sistema usa:
 
 ---
 
-## 👨‍💻 Autor
+## Autor
 
-**Joseph Vargas**
+**Jose Aguilar**
 Proyecto académico / portafolio
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 ## Este proyecto es de uso educativo.

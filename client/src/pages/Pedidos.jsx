@@ -9,24 +9,85 @@ export default function Pedidos() {
   }, []);
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>📋 Mis pedidos</h2>
+    <div style={container}>
+      <h1 style={title}>Mis pedidos</h1>
 
-      {data.length === 0 && <p>No hay pedidos</p>}
+      {data.length === 0 ? (
+        <p style={empty}>No tienes pedidos aún</p>
+      ) : (
+        <div style={grid}>
+          {data.map(p => (
+            <div key={p.id_pedido} style={card}>
+              <h3 style={pedido}>Pedido #{p.id_pedido}</h3>
 
-      {data.map(p => (
-        <div key={p.id_pedido} style={card}>
-          <h4>Pedido #{p.id_pedido}</h4>
-          <p>Estado: {p.estado}</p>
-          <p>Fecha: {p.creado_en}</p>
+              <p>
+                <b>Estado:</b>{" "}
+                <span style={estado}>{p.estadoActual || "PENDIENTE"}</span>
+              </p>
+
+              <p>
+                <b>Fecha:</b>{" "}
+                {new Date(p.fecha_creacion).toLocaleString()}
+              </p>
+
+              <button style={btnVer}>
+                Ver detalles
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }
 
+/* 🎨 ESTILOS */
+
+const container = {
+  padding: 30,
+  maxWidth: 1000,
+  margin: "auto",
+};
+
+const title = {
+  color: "#c40000",
+  marginBottom: 20,
+};
+
+const empty = {
+  textAlign: "center",
+  color: "#777",
+};
+
+const grid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+  gap: 20,
+};
+
 const card = {
-  border: "1px solid #ccc",
-  padding: 10,
+  padding: 20,
+  borderRadius: 12,
+  background: "#fff",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+};
+
+const pedido = {
   marginBottom: 10,
+};
+
+const estado = {
+  color: "#c40000",
+  fontWeight: "bold",
+};
+
+const btnVer = {
+  marginTop: 10,
+  padding: 10,
+  width: "100%",
+  border: "1px solid #c40000",
+  background: "transparent",
+  color: "#c40000",
+  borderRadius: 8,
+  cursor: "pointer",
 };

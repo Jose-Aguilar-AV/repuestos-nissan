@@ -64,8 +64,8 @@ app.post("/api/pedidos", (req, res) => {
 
   // 1. Crear pedido
   db.query(
-    "INSERT INTO pedido (id_cliente, id_usuario, estadoActual, fecha_creacion) VALUES (?, ?, 'PENDIENTE', NOW())",
-    [id_cliente, id_usuario],
+    "INSERT INTO pedido (id_cliente, id_usuario, id_estado, fecha_creacion) VALUES (?, ?, ?, NOW())",
+    [id_cliente, id_usuario, 1], // 1 = PENDIENTE
     (err, result) => {
       if (err) {
         console.error("Error pedido:", err);
@@ -117,7 +117,10 @@ app.post("/api/login", (req, res) => {
   const password = req.body.password.trim();
 
   db.query(
-    "SELECT * FROM usuario WHERE correo = ?",
+    `SELECT u.*, c.id_cliente
+     FROM usuario u
+     LEFT JOIN cliente c ON u.id = c.id_usuario
+     WHERE u.correo = ?`,
     [correo],
     async (err, result) => {
       if (err) return res.status(500).json({ error: "Error servidor" });
@@ -142,6 +145,7 @@ app.post("/api/login", (req, res) => {
         token,
         user: {
           id: user.id,
+          id_cliente: user.id_cliente, // 🔥 ESTE ES EL FIX
           nombre: user.nombre,
           correo: user.correo,
           rol: user.rol,
@@ -163,15 +167,28 @@ app.post("/api/register", async (req, res) => {
   db.query(
     "INSERT INTO usuario (nombre, correo, contrasena_hash) VALUES (?, ?, ?)",
     [nombre, correo, hash],
-    (err) => {
+    (err, result) => {
       if (err) {
         console.error(err);
         return res.status(500).json({ error: "Error al registrar" });
       }
 
-      res.json({ mensaje: "Usuario creado" });
+      const idUsuario = result.insertId;
+
+      // 🔥 CREAR CLIENTE AUTOMÁTICO
+      db.query(
+        "INSERT INTO cliente (nombre, id_usuario) VALUES (?, ?)",
+        [nombre, idUsuario],
+        (err2) => {
+          if (err2) {
+            console.error(err2);
+            return res.status(500).json({ error: "Error creando cliente" });
+          }
+
+          res.json({ mensaje: "Usuario y cliente creados" });
+        }
+      );
     }
   );
 });
-
 app.listen(3000, () => console.log("Servidor backend en 3000"));

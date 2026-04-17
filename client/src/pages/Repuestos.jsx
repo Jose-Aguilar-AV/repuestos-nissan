@@ -12,7 +12,7 @@ export default function Repuestos() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h1 style={{ color: "#c40000" }}>Repuestos Nissan 🚗</h1>
+      <h1 style={{ color: "#c40000" }}>Repuestos Nissan</h1>
 
       <div style={grid}>
         {data.map(r => (
