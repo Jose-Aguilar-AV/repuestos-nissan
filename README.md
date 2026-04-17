@@ -5,7 +5,7 @@ Incluye autenticación de usuarios, catálogo de productos, carrito de compras y
 
 ---
 
-## 📸 Vista previa
+## Vista previa
 
 ![preview](https://via.placeholder.com/900x400?text=Nissan+Store+Preview)
 
@@ -13,12 +13,12 @@ Incluye autenticación de usuarios, catálogo de productos, carrito de compras y
 
 ## Funcionalidades
 
-* 🔐 Login de usuarios
-* 🛒 Carrito de compras
-* 📦 Creación de pedidos
-* 📋 Historial de pedidos por usuario
-* 📦 Gestión de repuestos
-* 🔎 Visualización de stock
+* Login de usuarios
+* Carrito de compras
+* Creación de pedidos
+* Historial de pedidos por usuario
+* Gestión de repuestos
+* Visualización de stock
 
 ---
 
@@ -135,11 +135,11 @@ El sistema usa:
 
 ## Mejoras futuras
 
-* ✅ Sistema de roles (admin / usuario)
-* ✅ Gestión de inventario automática
-* ✅ Filtros por modelo de vehículo
-* ✅ Pasarela de pagos
-* ✅ Deploy en la nube
+* Sistema de roles (admin / usuario)
+* Gestión de inventario automática
+* Filtros por modelo de vehículo
+* Pasarela de pagos
+* Deploy en la nube
 
 ---
 
