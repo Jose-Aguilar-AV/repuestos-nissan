@@ -38,7 +38,7 @@ export default function Repuestos() {
                 add({ id_repuesto: r.id_repuesto, cantidad: 1 });
                 }}
             >
-              🛒 Agregar
+              Agregar
             </button>
           </div>
         ))}

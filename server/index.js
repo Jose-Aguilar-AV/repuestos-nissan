@@ -24,7 +24,7 @@ db.connect(err => {
 });
 
 // =============================
-// 🔹 AUTH
+//  AUTH
 // =============================
 
 app.post("/api/login", (req, res) => {
@@ -107,7 +107,7 @@ app.post("/api/register", async (req, res) => {
 });
 
 // =============================
-// 🔹 CATÁLOGO
+//  CATÁLOGO
 // =============================
 
 app.get("/api/repuestos", (req, res) => {
@@ -129,10 +129,10 @@ app.get("/api/repuestos/:id", (req, res) => {
 });
 
 // =============================
-// 🔹 PEDIDOS
+// PEDIDOS
 // =============================
 
-// 🧾 CREAR PEDIDO
+// CREAR PEDIDO
 app.post("/api/pedidos", (req, res) => {
   const { id_cliente, id_usuario, detalles } = req.body;
 
@@ -164,7 +164,7 @@ app.post("/api/pedidos", (req, res) => {
             return res.status(500).json({ error: "Error detalles" });
           }
 
-          // 🔥 DESCONTAR STOCK (CORREGIDO)
+          // DESCONTAR STOCK (CORREGIDO)
           const updates = detalles.map(d =>
             new Promise((resolve, reject) => {
               db.query(
@@ -189,14 +189,14 @@ app.post("/api/pedidos", (req, res) => {
               res.status(400).json({ error: err.message });
             });
 
-          // ❌ IMPORTANTE: quitamos el res.json duplicado
+   
         }
       );
     }
   );
 });
 
-// 📋 PEDIDOS POR USUARIO
+//  PEDIDOS POR USUARIO
 app.get("/api/pedidos/usuario/:id_usuario", (req, res) => {
   const { id_usuario } = req.params;
 
@@ -213,7 +213,7 @@ app.get("/api/pedidos/usuario/:id_usuario", (req, res) => {
   );
 });
 
-// 🔍 DETALLE DE PEDIDO
+//  DETALLE DE PEDIDO
 app.get("/api/pedidos/:id", (req, res) => {
   const { id } = req.params;
 
@@ -231,7 +231,7 @@ app.get("/api/pedidos/:id", (req, res) => {
   );
 });
 
-// ✏️ EDITAR PEDIDO
+//  EDITAR PEDIDO
 app.put("/api/pedidos/:id", (req, res) => {
   const { id } = req.params;
   const { detalles } = req.body;
@@ -261,7 +261,7 @@ app.put("/api/pedidos/:id", (req, res) => {
   );
 });
 
-// ❌ CANCELAR PEDIDO
+// CANCELAR PEDIDO
 app.put("/api/pedidos/:id/cancelar", (req, res) => {
   const { id } = req.params;
 
@@ -280,7 +280,7 @@ app.put("/api/pedidos/:id/cancelar", (req, res) => {
       if (estado === 3)
         return res.status(400).json({ error: "Finalizado" });
 
-      // 🔥 1. recuperar detalles
+      // 1. recuperar detalles
       db.query(
         "SELECT id_repuesto, cantidad FROM detalle_pedido WHERE id_pedido = ?",
         [id],

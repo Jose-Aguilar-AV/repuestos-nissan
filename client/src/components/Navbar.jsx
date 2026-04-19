@@ -37,7 +37,7 @@ export default function Navbar() {
         ) : (
           <>
             <span style={userName}>
-              👤 {user.nombre}
+              {user.nombre}
             </span>
 
             <button
