@@ -1,131 +1,90 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// services/api.js  ─  Capa de datos centralizada con JWT automático
+// ─────────────────────────────────────────────────────────────────────────────
 const API = "http://localhost:3000/api";
 
-// 🔧 helper para manejar errores correctamente
-const handleResponse = async (res) => {
+// ── Helper base ───────────────────────────────────────────────────────────────
+async function req(url, options = {}) {
+  const token = localStorage.getItem("token");
+  const res = await fetch(`${API}${url}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
 
   const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = { error: text }; }
 
-  try {
-
-    const json = JSON.parse(text);
-
-    if (!res.ok) {
-      throw new Error(
-        json.error ||
-        "Error en la petición"
-      );
-    }
-
-    return json;
-
-  } catch {
-
-    throw new Error(
-      "Respuesta inválida del servidor"
-    );
-
+  if (!res.ok) {
+    const msg = data?.error || data?.mensaje || `Error ${res.status}`;
+    throw new Error(msg);
   }
+  return data;
+}
 
-};
+const get  = (url, params)       => req(url + (params ? "?" + new URLSearchParams(params) : ""));
+const post = (url, body)         => req(url, { method: "POST", body: JSON.stringify(body) });
+const put  = (url, body)         => req(url, { method: "PUT",  body: JSON.stringify(body) });
+const patch = (url, body)        => req(url, { method: "PATCH", body: JSON.stringify(body) });
 
-// =============================
-// 🔹 REPUESTOS
-// =============================
+// ═════════════════════════════════════════════════════════════════════════════
+//  AUTH
+// ═════════════════════════════════════════════════════════════════════════════
+export const login    = (correo, password) => post("/login", { correo, password });
+export const register = (data)             => post("/register", data);
 
-export const getRepuestos = () =>
-  fetch(`${API}/repuestos`)
-    .then(handleResponse);
+// ═════════════════════════════════════════════════════════════════════════════
+//  REPUESTOS
+// ═════════════════════════════════════════════════════════════════════════════
+export const getRepuestos   = ()           => get("/repuestos");
+export const getRepuesto    = (id)         => get(`/repuestos/${id}`);
+export const editarRepuesto = (id, data)   => put(`/repuestos/${id}`, data);
 
-export const getRepuesto = (id) =>
-  fetch(`${API}/repuestos/${id}`)
-    .then(handleResponse);
+// ═════════════════════════════════════════════════════════════════════════════
+//  CLIENTES
+// ═════════════════════════════════════════════════════════════════════════════
+export const getClientes  = (q)    => get("/clientes", q ? { q } : {});
+export const crearCliente = (data) => post("/clientes", data);
 
-// =============================
-// 🔹 PEDIDOS
-// =============================
+// ═════════════════════════════════════════════════════════════════════════════
+//  PEDIDOS
+// ═════════════════════════════════════════════════════════════════════════════
+export const getPedidos = (filtros = {}) => get("/pedidos", filtros);
+export const getMisPedidos = ()          => get("/mis-pedidos");
+export const getPedido  = (id)           => get(`/pedidos/${id}`);
+export const crearPedido = (data)        => post("/pedidos", data);
+export const editarPedido = (id, data)   => put(`/pedidos/${id}`, data);
+export const cancelarPedido = (id)       => put(`/pedidos/${id}/cancelar`);
+export const cambiarEstado  = (id, id_estado) => put(`/pedidos/${id}/estado`, { id_estado });
 
-// 🧾 Crear pedido
-export const crearPedido = (data) =>
-  fetch(`${API}/pedidos`, {
+// ═════════════════════════════════════════════════════════════════════════════
+//  HISTORIAL
+// ═════════════════════════════════════════════════════════════════════════════
+export const getHistorial = (id) => get(`/pedidos/${id}/historial`);
 
-    method: "POST",
+// ═════════════════════════════════════════════════════════════════════════════
+//  ESTADOS
+// ═════════════════════════════════════════════════════════════════════════════
+export const getEstados = () => get("/estados");
 
-    headers: {
-      "Content-Type":
-        "application/json"
-    },
+// ═════════════════════════════════════════════════════════════════════════════
+//  USUARIOS  (admin)
+// ═════════════════════════════════════════════════════════════════════════════
+export const getUsuarios         = ()          => get("/usuarios");
+export const crearUsuario        = (data)      => post("/usuarios", data);
+export const toggleEstadoUsuario = (id, estado) => patch(`/usuarios/${id}/estado`, { estado });
+export const cambiarRolUsuario   = (id, rol)   => patch(`/usuarios/${id}/rol`, { rol });
 
-    body: JSON.stringify(data),
-
-  }).then(handleResponse);
-
-// 📋 Obtener pedidos por usuario
-export const getPedidos = (
-  id_usuario
-) =>
-  fetch(
-    `${API}/pedidos/usuario/${id_usuario}`
-  ).then(handleResponse);
-
-// 🔍 Obtener detalle de pedido
-export const getPedido = (id) =>
-  fetch(`${API}/pedidos/${id}`)
-    .then(handleResponse);
-
-// ✏️ Actualizar pedido
-export const actualizarPedido = (
-  id,
-  data
-) =>
-  fetch(`${API}/pedidos/${id}`, {
-
-    method: "PUT",
-
-    headers: {
-      "Content-Type":
-        "application/json"
-    },
-
-    body: JSON.stringify(data),
-
-  }).then(handleResponse);
-
-// ❌ Cancelar pedido
-export const cancelarPedido = (id) =>
-  fetch(
-    `${API}/pedidos/${id}/cancelar`,
-    {
-      method: "PUT",
-    }
-  ).then(handleResponse);
-
-// 📜 Historial del pedido
-export const getHistorialPedido = (
-  id
-) =>
-  fetch(
-    `${API}/pedidos/${id}/historial`
-  ).then(handleResponse);
-
-// 🔄 Cambiar estado del pedido
-export const cambiarEstadoPedido = (
-  id,
-  id_estado
-) =>
-  fetch(
-    `${API}/pedidos/${id}/estado`,
-    {
-
-      method: "PUT",
-
-      headers: {
-        "Content-Type":
-          "application/json"
-      },
-
-      body: JSON.stringify({
-        id_estado
-      }),
-
-    }
-  ).then(handleResponse);
+// ═════════════════════════════════════════════════════════════════════════════
+//  ANALYTICS
+// ═════════════════════════════════════════════════════════════════════════════
+export const getResumen       = ()  => get("/analytics/resumen");
+export const getTopRepuestos  = ()  => get("/analytics/top-repuestos");
+export const getPedidosPorDia = ()  => get("/analytics/pedidos-por-dia");
+export const getTopClientes   = ()  => get("/analytics/top-clientes");
+export const getStockAnalytics = () => get("/analytics/stock");
+export const getEstadosAnalytics = () => get("/analytics/estados");
