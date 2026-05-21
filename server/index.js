@@ -183,6 +183,26 @@ app.post("/api/pedidos", (req, res) => {
 
           Promise.all(updates)
             .then(() => {
+
+              db.query(
+                `
+                INSERT INTO historial_estado
+                (
+                  id_pedido,
+                  id_usuario,
+                 id_estado_anterior,
+                  id_estado_nuevo
+                )
+                VALUES (?, ?, ?, ?)
+                `,
+                [
+                  idPedido,
+                  id_usuario,
+                  null,
+                  1
+                ]
+              );              
+
               res.json({ idPedido });
             })
             .catch(err => {
@@ -215,20 +235,43 @@ app.get("/api/pedidos/usuario/:id_usuario", (req, res) => {
 
 //  DETALLE DE PEDIDO
 app.get("/api/pedidos/:id", (req, res) => {
+
   const { id } = req.params;
 
   db.query(
-    `SELECT p.*, d.cantidad, r.nombre, r.descripcion
-     FROM pedido p
-     JOIN detalle_pedido d ON p.id_pedido = d.id_pedido
-     JOIN repuesto r ON d.id_repuesto = r.id_repuesto
-     WHERE p.id_pedido = ?`,
+    `
+    SELECT
+      p.*,
+      e.nombre_estado,
+      d.cantidad,
+      r.id_repuesto,
+      r.nombre,
+      r.descripcion
+
+    FROM pedido p
+
+    JOIN estado_pedido e
+      ON p.id_estado = e.id_estado
+
+    JOIN detalle_pedido d
+      ON p.id_pedido = d.id_pedido
+
+    JOIN repuesto r
+      ON d.id_repuesto = r.id_repuesto
+
+    WHERE p.id_pedido = ?
+    `,
     [id],
     (err, result) => {
-      if (err) return res.status(500).json(err);
+
+      if (err)
+        return res.status(500).json(err);
+
       res.json(result);
+
     }
   );
+
 });
 
 //  EDITAR PEDIDO
@@ -263,61 +306,303 @@ app.put("/api/pedidos/:id", (req, res) => {
 
 // CANCELAR PEDIDO
 app.put("/api/pedidos/:id/cancelar", (req, res) => {
+
   const { id } = req.params;
 
   db.query(
-    "SELECT id_estado FROM pedido WHERE id_pedido = ?",
+    `
+    SELECT
+      id_estado,
+      id_usuario
+
+    FROM pedido
+
+    WHERE id_pedido = ?
+    `,
     [id],
     (err, result) => {
-      if (err) return res.status(500).json(err);
-      if (!result.length) return res.status(404).json({ error: "No existe" });
 
-      const estado = result[0].id_estado;
+      if (err)
+        return res.status(500).json(err);
+
+      if (!result.length)
+        return res.status(404).json({
+          error: "No existe"
+        });
+
+      const estado =
+        result[0].id_estado;
+
+      const id_usuario =
+        result[0].id_usuario;
 
       if (estado === 4)
-        return res.status(400).json({ error: "Ya está cancelado" });
+        return res.status(400).json({
+          error: "Ya está cancelado"
+        });
 
       if (estado === 3)
-        return res.status(400).json({ error: "Finalizado" });
+        return res.status(400).json({
+          error: "Finalizado"
+        });
 
-      // 1. recuperar detalles
+      // 1. RECUPERAR DETALLES
+
       db.query(
-        "SELECT id_repuesto, cantidad FROM detalle_pedido WHERE id_pedido = ?",
+        `
+        SELECT
+          id_repuesto,
+          cantidad
+
+        FROM detalle_pedido
+
+        WHERE id_pedido = ?
+        `,
         [id],
         (err2, detalles) => {
-          if (err2) return res.status(500).json(err2);
 
-          // 🔥 2. devolver stock
-          const updates = detalles.map(d =>
-            new Promise((resolve, reject) => {
-              db.query(
-                "UPDATE repuesto SET stock = stock + ? WHERE id_repuesto = ?",
-                [d.cantidad, d.id_repuesto],
-                (e) => (e ? reject(e) : resolve())
-              );
-            })
-          );
+          if (err2)
+            return res.status(500).json(err2);
+
+          // 2. DEVOLVER STOCK
+
+          const updates =
+            detalles.map(d =>
+
+              new Promise(
+                (
+                  resolve,
+                  reject
+                ) => {
+
+                  db.query(
+                    `
+                    UPDATE repuesto
+
+                    SET stock = stock + ?
+
+                    WHERE id_repuesto = ?
+                    `,
+                    [
+                      d.cantidad,
+                      d.id_repuesto
+                    ],
+                    (e) => {
+
+                      if (e)
+                        reject(e);
+
+                      else
+                        resolve();
+
+                    }
+                  );
+
+                }
+              )
+
+            );
 
           Promise.all(updates)
+
             .then(() => {
-              // 🔥 3. cancelar pedido
+
+              // 3. CANCELAR PEDIDO
+
               db.query(
-                "UPDATE pedido SET id_estado = 4 WHERE id_pedido = ?",
+                `
+                UPDATE pedido
+
+                SET id_estado = 4
+
+                WHERE id_pedido = ?
+                `,
                 [id],
                 (err3) => {
-                  if (err3) return res.status(500).json(err3);
 
-                  res.json({ mensaje: "Pedido cancelado y stock restaurado" });
+                  if (err3)
+                    return res.status(500).json(err3);
+
+                  // 4. GUARDAR HISTORIAL
+
+                  db.query(
+                    `
+                    INSERT INTO historial_estado
+                    (
+                      id_pedido,
+                      id_usuario,
+                      id_estado_anterior,
+                      id_estado_nuevo
+                    )
+
+                    VALUES (?, ?, ?, ?)
+                    `,
+                    [
+                      id,
+                      id_usuario,
+                      estado,
+                      4
+                    ],
+                    (err4) => {
+
+                      if (err4)
+                        return res.status(500).json(err4);
+
+                      res.json({
+                        mensaje:
+                          "Pedido cancelado y stock restaurado"
+                      });
+
+                    }
+                  );
+
                 }
               );
+
             })
-            .catch(err => res.status(500).json(err));
+
+            .catch(err =>
+              res.status(500).json(err)
+            );
+
         }
       );
+
     }
   );
+
 });
-// =============================
+
+// HISTORIAL DE ESTADOS
+app.get("/api/pedidos/:id/historial", (req, res) => {
+
+  const { id } = req.params;
+
+  db.query(
+    `
+    SELECT
+      h.id_historial,
+      ea.nombre_estado AS estado_anterior,
+      en.nombre_estado AS estado_nuevo,
+      h.fecha_cambio,
+      u.nombre AS usuario
+
+    FROM historial_estado h
+
+    LEFT JOIN estado_pedido ea
+      ON h.id_estado_anterior = ea.id_estado
+
+    LEFT JOIN estado_pedido en
+      ON h.id_estado_nuevo = en.id_estado
+
+    JOIN usuario u
+      ON h.id_usuario = u.id
+
+    WHERE h.id_pedido = ?
+
+    ORDER BY h.fecha_cambio ASC
+    `,
+    [id],
+    (err, result) => {
+
+      if (err)
+        return res.status(500).json(err);
+
+      res.json(result);
+
+    }
+  );
+
+});
+
+// CAMBIAR ESTADO DEL PEDIDO
+app.put("/api/pedidos/:id/estado", (req, res) => {
+
+  const { id } = req.params;
+
+  const { id_estado } = req.body;
+
+  db.query(
+    `
+    SELECT
+      id_estado,
+      id_usuario
+
+    FROM pedido
+
+    WHERE id_pedido = ?
+    `,
+    [id],
+    (err, result) => {
+
+      if (err)
+        return res.status(500).json(err);
+
+      if (!result.length)
+        return res.status(404).json({
+          error: "Pedido no existe"
+        });
+
+      const estadoAnterior =
+        result[0].id_estado;
+
+      const id_usuario =
+        result[0].id_usuario;
+
+      db.query(
+        `
+        UPDATE pedido
+
+        SET id_estado = ?
+
+        WHERE id_pedido = ?
+        `,
+        [id_estado, id],
+        (err2) => {
+
+          if (err2)
+            return res.status(500).json(err2);
+
+          // GUARDAR HISTORIAL
+
+          db.query(
+            `
+            INSERT INTO historial_estado
+            (
+              id_pedido,
+              id_usuario,
+              id_estado_anterior,
+              id_estado_nuevo
+            )
+
+            VALUES (?, ?, ?, ?)
+            `,
+            [
+              id,
+              id_usuario,
+              estadoAnterior,
+              id_estado
+            ],
+            (err3) => {
+
+              if (err3)
+                return res.status(500).json(err3);
+
+              res.json({
+                mensaje:
+                  "Estado actualizado"
+              });
+
+            }
+          );
+
+        }
+      );
+
+    }
+  );
+
+});
 
 // ======================================
 // PEDIDOS COMPLETOS
