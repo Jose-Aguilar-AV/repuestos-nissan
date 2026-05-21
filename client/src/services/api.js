@@ -1,7 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // services/api.js  ─  Capa de datos centralizada con JWT automático
+// Apunta a server/index.js (puerto 3000)
 // ─────────────────────────────────────────────────────────────────────────────
-const API = "http://localhost:3000/api";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 // ── Helper base ───────────────────────────────────────────────────────────────
 async function req(url, options = {}) {
@@ -26,23 +28,23 @@ async function req(url, options = {}) {
   return data;
 }
 
-const get  = (url, params)       => req(url + (params ? "?" + new URLSearchParams(params) : ""));
-const post = (url, body)         => req(url, { method: "POST", body: JSON.stringify(body) });
-const put  = (url, body)         => req(url, { method: "PUT",  body: JSON.stringify(body) });
-const patch = (url, body)        => req(url, { method: "PATCH", body: JSON.stringify(body) });
+const get   = (url, params) => req(url + (params && Object.keys(params).length ? "?" + new URLSearchParams(params) : ""));
+const post  = (url, body)   => req(url, { method: "POST",  body: JSON.stringify(body) });
+const put   = (url, body)   => req(url, { method: "PUT",   body: JSON.stringify(body) });
+const patch = (url, body)   => req(url, { method: "PATCH", body: JSON.stringify(body) });
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  AUTH
 // ═════════════════════════════════════════════════════════════════════════════
-export const login    = (correo, password) => post("/login", { correo, password });
+export const login    = (correo, password) => post("/login",    { correo, password });
 export const register = (data)             => post("/register", data);
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  REPUESTOS
 // ═════════════════════════════════════════════════════════════════════════════
-export const getRepuestos   = ()           => get("/repuestos");
-export const getRepuesto    = (id)         => get(`/repuestos/${id}`);
-export const editarRepuesto = (id, data)   => put(`/repuestos/${id}`, data);
+export const getRepuestos   = ()         => get("/repuestos");
+export const getRepuesto    = (id)       => get(`/repuestos/${id}`);
+export const editarRepuesto = (id, data) => put(`/repuestos/${id}`, data);
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  CLIENTES
@@ -53,18 +55,20 @@ export const crearCliente = (data) => post("/clientes", data);
 // ═════════════════════════════════════════════════════════════════════════════
 //  PEDIDOS
 // ═════════════════════════════════════════════════════════════════════════════
-export const getPedidos = (filtros = {}) => get("/pedidos", filtros);
-export const getMisPedidos = ()          => get("/mis-pedidos");
-export const getPedido  = (id)           => get(`/pedidos/${id}`);
-export const crearPedido = (data)        => post("/pedidos", data);
-export const editarPedido = (id, data)   => put(`/pedidos/${id}`, data);
-export const cancelarPedido = (id)       => put(`/pedidos/${id}/cancelar`);
-export const cambiarEstado  = (id, id_estado) => put(`/pedidos/${id}/estado`, { id_estado });
+export const getPedidos      = (filtros = {}) => get("/pedidos", filtros);
+export const getMisPedidos   = ()             => get("/mis-pedidos");
+export const getPedido       = (id)           => get(`/pedidos/${id}`);
+export const crearPedido     = (data)         => post("/pedidos", data);
+export const editarPedido    = (id, data)     => put(`/pedidos/${id}`, data);
+export const cancelarPedido  = (id)           => put(`/pedidos/${id}/cancelar`);
+export const cambiarEstado   = (id, id_estado) => put(`/pedidos/${id}/estado`, { id_estado });
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  HISTORIAL
 // ═════════════════════════════════════════════════════════════════════════════
-export const getHistorial = (id) => get(`/pedidos/${id}/historial`);
+export const getHistorialPedido = (id) => get(`/pedidos/${id}/historial`);
+// alias por compatibilidad con páginas que importan getHistorial
+export const getHistorial = getHistorialPedido;
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  ESTADOS
@@ -72,19 +76,19 @@ export const getHistorial = (id) => get(`/pedidos/${id}/historial`);
 export const getEstados = () => get("/estados");
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  USUARIOS  (admin)
+//  USUARIOS  (solo admin)
 // ═════════════════════════════════════════════════════════════════════════════
-export const getUsuarios         = ()          => get("/usuarios");
-export const crearUsuario        = (data)      => post("/usuarios", data);
-export const toggleEstadoUsuario = (id, estado) => patch(`/usuarios/${id}/estado`, { estado });
-export const cambiarRolUsuario   = (id, rol)   => patch(`/usuarios/${id}/rol`, { rol });
+export const getUsuarios         = ()               => get("/usuarios");
+export const crearUsuario        = (data)           => post("/usuarios", data);
+export const toggleEstadoUsuario = (id, estado)     => patch(`/usuarios/${id}/estado`, { estado });
+export const cambiarRolUsuario   = (id, rol)        => patch(`/usuarios/${id}/rol`, { rol });
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  ANALYTICS
 // ═════════════════════════════════════════════════════════════════════════════
-export const getResumen       = ()  => get("/analytics/resumen");
-export const getTopRepuestos  = ()  => get("/analytics/top-repuestos");
-export const getPedidosPorDia = ()  => get("/analytics/pedidos-por-dia");
-export const getTopClientes   = ()  => get("/analytics/top-clientes");
-export const getStockAnalytics = () => get("/analytics/stock");
+export const getResumen          = () => get("/analytics/resumen");
+export const getTopRepuestos     = () => get("/analytics/top-repuestos");
+export const getPedidosPorDia    = () => get("/analytics/pedidos-por-dia");
+export const getTopClientes      = () => get("/analytics/top-clientes");
+export const getStockAnalytics   = () => get("/analytics/stock");
 export const getEstadosAnalytics = () => get("/analytics/estados");
