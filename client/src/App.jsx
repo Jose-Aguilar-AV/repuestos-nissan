@@ -7,7 +7,7 @@ import Repuestos from "./pages/Repuestos";
 import CrearPedido from "./pages/CrearPedido";
 import Pedidos from "./pages/Pedidos";
 import Login from "./pages/login";
-import PedidoDetalle from "./pages/PedidoDetalle";
+import PedidoDetalle from "./pages/PedidoDetalle.jsx";
 
 
 function App() {

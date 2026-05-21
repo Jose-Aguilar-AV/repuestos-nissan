@@ -318,6 +318,49 @@ app.put("/api/pedidos/:id/cancelar", (req, res) => {
   );
 });
 // =============================
+
+// ======================================
+// PEDIDOS COMPLETOS
+// ======================================
+
+app.get("/api/pedidos-completos", (req, res) => {
+
+  const sql = `
+  
+    SELECT
+      p.id_pedido,
+      u.nombre AS usuario,
+      r.nombre AS repuesto,
+      d.cantidad,
+      p.fecha_creacion
+
+    FROM pedido p
+
+    JOIN usuario u
+      ON p.id_usuario = u.id
+
+    JOIN detalle_pedido d
+      ON p.id_pedido = d.id_pedido
+
+    JOIN repuesto r
+      ON d.id_repuesto = r.id_repuesto
+
+    ORDER BY p.fecha_creacion DESC
+  
+  `;
+
+  db.query(sql, (err, result) => {
+
+    if (err) {
+      return res.status(500).json(err);
+    }
+
+    res.json(result);
+
+  });
+
+});
+
 app.listen(3000, () => {
   console.log("Servidor backend en 3000");
 });
