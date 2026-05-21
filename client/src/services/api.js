@@ -58,6 +58,7 @@ export const crearCliente = (data) => post("/clientes", data);
 export const getPedidos      = (filtros = {}) => get("/pedidos", filtros);
 export const getMisPedidos   = ()             => get("/mis-pedidos");
 export const getPedido       = (id)           => get(`/pedidos/${id}`);
+export const actualizarPedido = (id, data) => put(`/pedidos/${id}`, data);
 export const crearPedido     = (data)         => post("/pedidos", data);
 export const editarPedido    = (id, data)     => put(`/pedidos/${id}`, data);
 export const cancelarPedido  = (id)           => put(`/pedidos/${id}/cancelar`);
