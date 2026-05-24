@@ -167,7 +167,7 @@ export default function AdminPedidos() {
       {/* Header */}
       <div style={s.header}>
         <div>
-          <h1 style={s.title}>📋 Todos los pedidos</h1>
+          <h1 style={s.title}>Todos los pedidos</h1>
           <p style={s.sub}>{pedidosFiltrados.length} pedido(s) · Vista administrador</p>
         </div>
         <button style={s.btnBack} onClick={() => navigate("/admin")}>← Dashboard</button>

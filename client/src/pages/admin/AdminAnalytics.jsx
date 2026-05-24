@@ -180,7 +180,7 @@ export default function AdminAnalytics() {
 
       {/* Fila 1: Tendencia pedidos + Distribución estados */}
       <div style={s.row2}>
-        <ChartPanel title="📅 Tendencia pedidos — últimos 30 días">
+        <ChartPanel title="Tendencia pedidos — últimos 30 días">
           {porDia.length === 0 ? (
             <p style={s.empty}>Sin datos</p>
           ) : (
@@ -202,7 +202,7 @@ export default function AdminAnalytics() {
           )}
         </ChartPanel>
 
-        <ChartPanel title="🥧 Distribución de estados">
+        <ChartPanel title="Distribución de estados">
           {estados.length === 0 ? (
             <p style={s.empty}>Sin datos</p>
           ) : (
@@ -232,7 +232,7 @@ export default function AdminAnalytics() {
 
       {/* Fila 2: Top repuestos + Top clientes */}
       <div style={s.row2}>
-        <ChartPanel title="🔧 Top 10 repuestos más pedidos">
+        <ChartPanel title="Top 10 repuestos más pedidos">
           {topRep.length === 0 ? (
             <p style={s.empty}>Sin datos</p>
           ) : (
@@ -250,7 +250,7 @@ export default function AdminAnalytics() {
           )}
         </ChartPanel>
 
-        <ChartPanel title="👥 Clientes más frecuentes">
+        <ChartPanel title="Clientes más frecuentes">
           {topClientes.length === 0 ? (
             <p style={s.empty}>Sin datos</p>
           ) : (
@@ -272,7 +272,7 @@ export default function AdminAnalytics() {
       {/* Fila 3: Usuarios + Stock */}
       <div style={s.row2}>
         {/* Usuarios por rol */}
-        <ChartPanel title="👤 Usuarios del sistema">
+        <ChartPanel title="Usuarios del sistema">
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
             <Card icon="👑" label="Admins"    value={usuarios.filter(u => u.rol === "ADMINISTRADOR").length} color="#7c3aed" />
             <Card icon="⚙️" label="Operadores" value={operadores.length}  color="#0ea5e9" />
@@ -295,7 +295,7 @@ export default function AdminAnalytics() {
         </ChartPanel>
 
         {/* Stock general */}
-        <ChartPanel title="📦 Stock por repuesto">
+        <ChartPanel title=" Stock por repuesto">
           {stock.length === 0 ? (
             <p style={s.empty}>Sin datos</p>
           ) : (

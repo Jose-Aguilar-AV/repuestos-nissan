@@ -142,10 +142,10 @@ export default function AdminDashboard() {
       {/* Header */}
       <div style={s.header}>
         <div>
-          <h1 style={s.title}>🏠 Panel Administrador</h1>
+          <h1 style={s.title}>Panel Administrador</h1>
           <p style={s.sub}>Resumen general del sistema · {new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
         </div>
-        <button style={s.btnRefresh} onClick={cargar}>🔄 Actualizar</button>
+        <button style={s.btnRefresh} onClick={cargar}>Actualizar</button>
       </div>
 
       {/* Alertas */}

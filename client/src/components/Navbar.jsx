@@ -56,7 +56,7 @@ export default function Navbar() {
 
         {isOperador && !isAdmin && (
           <>
-            {link("/operador",         "📋 Panel")}
+            {link("/operador",         "Panel")}
             {link("/operador/pedidos", "Pedidos")}
             {link("/operador/analytics","Analytics")}
           </>
@@ -64,7 +64,7 @@ export default function Navbar() {
 
         {isAdmin && (
           <>
-            {link("/admin",            "🏠 Dashboard")}
+            {link("/admin",            "Dashboard")}
             {link("/admin/pedidos",    "Pedidos")}
             {link("/admin/usuarios",   "Usuarios")}
             {link("/admin/analytics",  "Analytics")}
