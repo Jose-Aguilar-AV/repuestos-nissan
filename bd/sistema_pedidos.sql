@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 21-05-2026 a las 16:43:56
+-- Tiempo de generación: 25-05-2026 a las 23:29:10
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -36,6 +36,39 @@ CREATE TABLE `auditoria` (
   `fecha` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Volcado de datos para la tabla `auditoria`
+--
+
+INSERT INTO `auditoria` (`id_auditoria`, `id_usuario`, `accion`, `detalle`, `ip`, `fecha`) VALUES
+(1, 11, 'LOGIN', NULL, '::1', '2026-05-21 13:56:30'),
+(2, 10, 'LOGIN', NULL, '::1', '2026-05-21 13:59:57'),
+(3, 11, 'LOGIN', NULL, '::1', '2026-05-21 14:55:55'),
+(4, 11, 'CREAR_PEDIDO', 'Pedido #29', '::1', '2026-05-21 14:56:06'),
+(5, 10, 'LOGIN', NULL, '::1', '2026-05-21 14:56:29'),
+(6, 10, 'EDITAR_PEDIDO', 'Pedido #29', '::1', '2026-05-21 14:57:51'),
+(7, 10, 'CAMBIO_ESTADO', 'Pedido #29: 1→2', '::1', '2026-05-21 14:58:09'),
+(8, 10, 'LOGIN', NULL, '::1', '2026-05-22 08:52:54'),
+(9, 10, 'LOGIN', NULL, '::1', '2026-05-23 20:56:29'),
+(10, 10, 'LOGIN', NULL, '::1', '2026-05-25 07:20:44'),
+(11, 11, 'LOGIN', NULL, '::1', '2026-05-25 07:21:51'),
+(12, 11, 'CREAR_PEDIDO', 'Pedido #30', '::1', '2026-05-25 07:22:00'),
+(13, 10, 'LOGIN', NULL, '::1', '2026-05-25 07:34:28'),
+(14, 10, 'LOGIN', NULL, '::1', '2026-05-25 15:36:58'),
+(15, 11, 'LOGIN', NULL, '::1', '2026-05-25 15:40:16'),
+(16, 11, 'CREAR_PEDIDO', 'Pedido #31', '::1', '2026-05-25 15:40:35'),
+(17, 10, 'LOGIN', NULL, '::1', '2026-05-25 15:40:50'),
+(18, 10, 'CAMBIO_ESTADO', 'Pedido #31: 1→2', '::1', '2026-05-25 15:41:20'),
+(19, 10, 'CAMBIO_ESTADO', 'Pedido #31: 2→3', '::1', '2026-05-25 15:41:26'),
+(20, 11, 'LOGIN', NULL, '::1', '2026-05-25 15:41:42'),
+(21, 10, 'LOGIN', NULL, '::1', '2026-05-25 15:43:26'),
+(22, 10, 'CREAR_USUARIO', 'Creó OPERADOR: dan12@jfdshn.com', '::1', '2026-05-25 15:43:50'),
+(23, 11, 'LOGIN', NULL, '::1', '2026-05-25 15:44:04'),
+(24, 12, 'LOGIN', NULL, '::1', '2026-05-25 15:44:11'),
+(25, 10, 'LOGIN', NULL, '::1', '2026-05-25 15:51:42'),
+(26, 12, 'LOGIN', NULL, '::1', '2026-05-25 16:11:51'),
+(27, 11, 'LOGIN', NULL, '::1', '2026-05-25 16:14:15');
+
 -- --------------------------------------------------------
 
 --
@@ -57,7 +90,8 @@ CREATE TABLE `cliente` (
 --
 
 INSERT INTO `cliente` (`id_cliente`, `nombre`, `documento`, `telefono`, `email`, `direccion`, `id_usuario`) VALUES
-(1, 'Dan', NULL, NULL, NULL, NULL, 10);
+(1, 'Dan', NULL, NULL, NULL, NULL, 10),
+(2, 'joe', NULL, NULL, NULL, NULL, 11);
 
 -- --------------------------------------------------------
 
@@ -80,51 +114,24 @@ CREATE TABLE `detalle_pedido` (
 
 INSERT INTO `detalle_pedido` (`id_detalle`, `id_pedido`, `id_repuesto`, `cantidad`, `precio_unitario`, `observaciones`) VALUES
 (1, 10, 4, 1, NULL, NULL),
-(2, 10, 4, 1, NULL, NULL),
 (3, 11, 4, 1, NULL, NULL),
-(4, 11, 4, 1, NULL, NULL),
 (5, 12, 4, 1, NULL, NULL),
-(6, 12, 4, 1, NULL, NULL),
-(7, 12, 4, 1, NULL, NULL),
 (8, 13, 4, 1, NULL, NULL),
-(9, 13, 4, 1, NULL, NULL),
-(10, 13, 4, 1, NULL, NULL),
-(11, 13, 4, 1, NULL, NULL),
-(12, 13, 4, 1, NULL, NULL),
 (13, 13, 5, 1, NULL, NULL),
-(14, 13, 5, 1, NULL, NULL),
 (15, 14, 5, 1, NULL, NULL),
 (16, 15, 4, 1, NULL, NULL),
-(17, 15, 4, 1, NULL, NULL),
-(18, 15, 4, 1, NULL, NULL),
 (19, 16, 5, 1, NULL, NULL),
-(20, 16, 5, 1, NULL, NULL),
-(21, 16, 5, 1, NULL, NULL),
 (22, 17, 4, 1, NULL, NULL),
-(23, 17, 4, 1, NULL, NULL),
 (24, 18, 4, 1, NULL, NULL),
-(25, 18, 4, 1, NULL, NULL),
 (26, 19, 5, 1, NULL, NULL),
-(27, 19, 5, 1, NULL, NULL),
 (28, 20, 6, 1, NULL, NULL),
-(29, 20, 6, 1, NULL, NULL),
 (30, 21, 5, 1, NULL, NULL),
-(31, 21, 5, 1, NULL, NULL),
-(32, 21, 5, 1, NULL, NULL),
 (33, 22, 5, 1, NULL, NULL),
-(34, 22, 5, 1, NULL, NULL),
 (35, 23, 4, 1, NULL, NULL),
-(36, 23, 4, 1, NULL, NULL),
-(37, 23, 4, 1, NULL, NULL),
-(38, 23, 4, 1, NULL, NULL),
-(39, 23, 4, 1, NULL, NULL),
-(40, 23, 4, 1, NULL, NULL),
-(41, 23, 4, 1, NULL, NULL),
-(42, 23, 4, 1, NULL, NULL),
-(43, 23, 4, 1, NULL, NULL),
 (47, 25, 4, 1, NULL, NULL),
-(48, 25, 4, 1, NULL, NULL),
-(56, 28, 5, 2, NULL, NULL);
+(56, 28, 5, 2, NULL, NULL),
+(58, 30, 6, 3, 0.00, NULL),
+(59, 31, 6, 2, 0.00, NULL);
 
 -- --------------------------------------------------------
 
@@ -168,7 +175,13 @@ CREATE TABLE `historial_estado` (
 --
 
 INSERT INTO `historial_estado` (`id_historial`, `id_pedido`, `id_usuario`, `id_estado_anterior`, `id_estado_nuevo`, `fecha_cambio`) VALUES
-(1, 14, 10, 1, 4, '2026-05-21 08:10:17');
+(1, 14, 10, 1, 4, '2026-05-21 08:10:17'),
+(2, 29, 11, NULL, 1, '2026-05-21 14:56:06'),
+(3, 29, 10, 1, 2, '2026-05-21 14:58:09'),
+(4, 30, 11, NULL, 1, '2026-05-25 07:22:00'),
+(5, 31, 11, NULL, 1, '2026-05-25 15:40:35'),
+(6, 31, 10, 1, 2, '2026-05-25 15:41:20'),
+(7, 31, 10, 2, 3, '2026-05-25 15:41:26');
 
 -- --------------------------------------------------------
 
@@ -210,7 +223,10 @@ INSERT INTO `pedido` (`id_pedido`, `id_cliente`, `id_usuario`, `id_estado`, `fec
 (25, 1, 10, 4, '2026-05-20 08:01:43', NULL, NULL, NULL),
 (26, 1, 10, 4, '2026-05-20 08:33:31', NULL, NULL, NULL),
 (27, 1, 10, 4, '2026-05-20 08:41:32', NULL, NULL, NULL),
-(28, 1, 10, 3, '2026-05-20 08:59:03', NULL, NULL, NULL);
+(28, 1, 10, 3, '2026-05-20 08:59:03', NULL, NULL, NULL),
+(29, 2, 11, 2, '2026-05-21 14:56:06', NULL, NULL, NULL),
+(30, 2, 11, 1, '2026-05-25 07:22:00', NULL, NULL, NULL),
+(31, 2, 11, 3, '2026-05-25 15:40:35', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -226,17 +242,18 @@ CREATE TABLE `repuesto` (
   `marca` varchar(100) DEFAULT NULL,
   `modelo_compatible` varchar(100) DEFAULT NULL,
   `stock` int(11) DEFAULT 0,
-  `precio` decimal(12,2) DEFAULT 0.00
+  `precio` decimal(12,2) DEFAULT 0.00,
+  `imagen_url` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `repuesto`
 --
 
-INSERT INTO `repuesto` (`id_repuesto`, `nombre`, `descripcion`, `categoria`, `marca`, `modelo_compatible`, `stock`, `precio`) VALUES
-(4, 'Filtro de aceite Nissan', 'Para motores 1.6 y 2.0', NULL, NULL, NULL, 2, 0.00),
-(5, 'Pastillas de freno', 'Alta duración', NULL, NULL, NULL, 9, 0.00),
-(6, 'Bujías Nissan', 'Originales', NULL, NULL, NULL, 13, 0.00);
+INSERT INTO `repuesto` (`id_repuesto`, `nombre`, `descripcion`, `categoria`, `marca`, `modelo_compatible`, `stock`, `precio`, `imagen_url`) VALUES
+(4, 'Filtro de aceite Nissan', 'Para motores 1.6 y 2.0', NULL, NULL, NULL, 2, 0.00, NULL),
+(5, 'Pastillas de freno', 'Alta duración', NULL, NULL, NULL, 9, 0.00, NULL),
+(6, 'Bujías Nissan', 'Originales', NULL, NULL, NULL, 8, 0.00, NULL);
 
 -- --------------------------------------------------------
 
@@ -248,6 +265,9 @@ CREATE TABLE `usuario` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `nombre` varchar(100) NOT NULL,
   `correo` varchar(160) NOT NULL,
+  `celular` varchar(20) DEFAULT NULL,
+  `intentos_fallidos` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `bloqueado_hasta` datetime DEFAULT NULL,
   `contrasena_hash` varchar(255) NOT NULL,
   `rol` enum('CLIENTE','OPERADOR','ADMINISTRADOR') NOT NULL DEFAULT 'CLIENTE',
   `estado` enum('ACTIVO','INACTIVO') DEFAULT 'ACTIVO',
@@ -259,8 +279,10 @@ CREATE TABLE `usuario` (
 -- Volcado de datos para la tabla `usuario`
 --
 
-INSERT INTO `usuario` (`id`, `nombre`, `correo`, `contrasena_hash`, `rol`, `estado`, `creado_en`, `actualizado_en`) VALUES
-(10, 'Dan', 'admin@nissan.com', '$2b$10$OvWz3bNm1WXp3vCi8UHC7OT/6.IB1FR3TaUYqHAZ7BdsP/vHvG5eO', 'ADMINISTRADOR', 'ACTIVO', '2026-04-16 23:46:35', NULL);
+INSERT INTO `usuario` (`id`, `nombre`, `correo`, `celular`, `intentos_fallidos`, `bloqueado_hasta`, `contrasena_hash`, `rol`, `estado`, `creado_en`, `actualizado_en`) VALUES
+(10, 'Dan', 'admin@nissan.com', NULL, 0, NULL, '$2b$10$OvWz3bNm1WXp3vCi8UHC7OT/6.IB1FR3TaUYqHAZ7BdsP/vHvG5eO', 'ADMINISTRADOR', 'ACTIVO', '2026-04-16 23:46:35', NULL),
+(11, 'joe', 'tres@fnbjhaf.com', NULL, 0, NULL, '$2b$10$MybyrVFeTQSmD2VQg5Y/7eN4CwlKwf3j1urTIH2ASd1neKg6dO0Em', 'CLIENTE', 'ACTIVO', '2026-05-21 13:56:28', NULL),
+(12, 'Juan Perez', 'dan12@jfdshn.com', NULL, 0, NULL, '$2b$10$15llfHd/kRk9/nY.fwhE4OAo/7V3M8EYNYGUwgN.Ff2OYSpVMSHv6', 'OPERADOR', 'ACTIVO', '2026-05-25 15:43:50', NULL);
 
 --
 -- Índices para tablas volcadas
@@ -287,7 +309,7 @@ ALTER TABLE `cliente`
 --
 ALTER TABLE `detalle_pedido`
   ADD PRIMARY KEY (`id_detalle`),
-  ADD KEY `id_pedido` (`id_pedido`),
+  ADD UNIQUE KEY `uq_pedido_repuesto` (`id_pedido`,`id_repuesto`),
   ADD KEY `idx_detalle_repuesto` (`id_repuesto`);
 
 --
@@ -338,19 +360,19 @@ ALTER TABLE `usuario`
 -- AUTO_INCREMENT de la tabla `auditoria`
 --
 ALTER TABLE `auditoria`
-  MODIFY `id_auditoria` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_auditoria` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT de la tabla `cliente`
 --
 ALTER TABLE `cliente`
-  MODIFY `id_cliente` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_cliente` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `detalle_pedido`
 --
 ALTER TABLE `detalle_pedido`
-  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
+  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
 
 --
 -- AUTO_INCREMENT de la tabla `estado_pedido`
@@ -362,13 +384,13 @@ ALTER TABLE `estado_pedido`
 -- AUTO_INCREMENT de la tabla `historial_estado`
 --
 ALTER TABLE `historial_estado`
-  MODIFY `id_historial` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_historial` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT de la tabla `pedido`
 --
 ALTER TABLE `pedido`
-  MODIFY `id_pedido` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `id_pedido` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT de la tabla `repuesto`
@@ -380,7 +402,7 @@ ALTER TABLE `repuesto`
 -- AUTO_INCREMENT de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- Restricciones para tablas volcadas

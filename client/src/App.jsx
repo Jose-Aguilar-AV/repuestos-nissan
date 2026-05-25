@@ -10,6 +10,7 @@ import CrearPedido   from "./pages/CrearPedido";
 import Pedidos       from "./pages/Pedidos";
 import Login         from "./pages/login";
 import PedidoDetalle from "./pages/PedidoDetalle";
+import DetalleProducto from "./pages/DetalleProducto";
 
 // Panel Operador
 import OperadorDashboard  from "./pages/operador/OperadorDashboard";
@@ -33,6 +34,7 @@ function App() {
         <Route path="/login"     element={<Login />} />
         <Route path="/"          element={<Home />} />
         <Route path="/repuestos" element={<Repuestos />} />
+        <Route path="/repuesto/:id" element={<DetalleProducto />} />
 
         {/* ── Cliente ───────────────────────────────────────── */}
         <Route path="/pedido/nuevo" element={

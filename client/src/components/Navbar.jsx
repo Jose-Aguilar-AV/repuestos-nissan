@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { ShoppingCart, ClipboardList, LayoutDashboard, Package, Users, BarChart2, PlusCircle } from "lucide-react";
 
 const ROL_COLOR = {
   ADMINISTRADOR: "#7c3aed",
