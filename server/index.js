@@ -1,5 +1,7 @@
-// server/index.js  ─  Backend completo con roles y permisos
+// server/index.js  ─  Backend corregido RF1–RF10
 // ──────────────────────────────────────────────────────────────
+require("dotenv").config();
+
 const express = require("express");
 const mysql   = require("mysql2");
 const cors    = require("cors");
@@ -10,7 +12,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const SECRET = process.env.JWT_SECRET || "secreto123";
+// RF2 FIX: JWT_SECRET solo desde .env — sin fallback hardcodeado
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET) {
+  console.error("❌ JWT_SECRET no definido en .env. Abortando.");
+  process.exit(1);
+}
 
 // ── CONEXIÓN DB ───────────────────────────────────────────────
 const db = mysql.createConnection({
@@ -35,12 +42,21 @@ function query(sql, params = []) {
 }
 
 // ── MIDDLEWARES ───────────────────────────────────────────────
-function verificarToken(req, res, next) {
+// RF2 FIX: verificarToken valida también que el usuario siga ACTIVO
+async function verificarToken(req, res, next) {
   const auth = req.headers["authorization"];
   if (!auth?.startsWith("Bearer "))
     return res.status(401).json({ error: "Token requerido" });
   try {
-    req.user = jwt.verify(auth.split(" ")[1], SECRET);
+    const decoded = jwt.verify(auth.split(" ")[1], SECRET);
+    // Validar que el usuario no haya sido desactivado después de emitir el token
+    const rows = await query(
+      "SELECT id, rol, nombre, estado FROM usuario WHERE id = ?",
+      [decoded.id]
+    );
+    if (!rows.length || rows[0].estado !== "ACTIVO")
+      return res.status(401).json({ error: "Usuario inactivo o no encontrado" });
+    req.user = { id: rows[0].id, rol: rows[0].rol, nombre: rows[0].nombre };
     next();
   } catch {
     res.status(401).json({ error: "Token inválido o expirado" });
@@ -55,9 +71,8 @@ function soloRol(...roles) {
     next();
   };
 }
-const soloAdmin    = soloRol("ADMINISTRADOR");
+const soloAdmin      = soloRol("ADMINISTRADOR");
 const operadorOAdmin = soloRol("OPERADOR", "ADMINISTRADOR");
-const autenticado  = verificarToken;
 
 // Auditoría automática
 async function auditar(id_usuario, accion, detalle, ip) {
@@ -73,7 +88,7 @@ async function auditar(id_usuario, accion, detalle, ip) {
 //  AUTH
 // ═══════════════════════════════════════════════════════════════
 
-// LOGIN ─ devuelve token con rol incluido
+// LOGIN ─ RF2: bloqueo por intentos fallidos
 app.post("/api/login", async (req, res) => {
   try {
     const { correo, password } = req.body;
@@ -84,18 +99,54 @@ app.post("/api/login", async (req, res) => {
       `SELECT u.*, c.id_cliente
        FROM usuario u
        LEFT JOIN cliente c ON u.id = c.id_usuario
-       WHERE u.correo = ? AND u.estado = 'ACTIVO'`,
-      [correo.trim()]
+       WHERE u.correo = ?`,
+      [correo.trim().toLowerCase()]
     );
+
     if (!rows.length)
-      return res.status(401).json({ error: "Usuario no encontrado o inactivo" });
+      return res.status(401).json({ error: "Credenciales incorrectas" });
 
-    const user  = rows[0];
+    const user = rows[0];
+
+    // RF2: Verificar si está bloqueado
+    if (user.bloqueado_hasta && new Date(user.bloqueado_hasta) > new Date()) {
+      const segundos = Math.ceil((new Date(user.bloqueado_hasta) - new Date()) / 1000);
+      return res.status(429).json({
+        error: `Cuenta bloqueada. Intenta de nuevo en ${segundos} segundos.`,
+      });
+    }
+
+    // RF2: Verificar estado ACTIVO
+    if (user.estado !== "ACTIVO")
+      return res.status(401).json({ error: "Usuario inactivo" });
+
     const match = await bcrypt.compare(password.trim(), user.contrasena_hash);
-    if (!match)
-      return res.status(401).json({ error: "Contraseña incorrecta" });
+    if (!match) {
+      // RF2: Incrementar intentos fallidos
+      const nuevosIntentos = (user.intentos_fallidos || 0) + 1;
+      if (nuevosIntentos >= 3) {
+        // Bloquear por 15 minutos
+        await query(
+          "UPDATE usuario SET intentos_fallidos=?, bloqueado_hasta=DATE_ADD(NOW(), INTERVAL 15 MINUTE) WHERE id=?",
+          [nuevosIntentos, user.id]
+        );
+        return res.status(429).json({
+          error: "Demasiados intentos fallidos. Cuenta bloqueada 15 minutos.",
+        });
+      }
+      await query(
+        "UPDATE usuario SET intentos_fallidos=? WHERE id=?",
+        [nuevosIntentos, user.id]
+      );
+      return res.status(401).json({ error: "Credenciales incorrectas" });
+    }
 
-    // Token incluye rol para validación en frontend
+    // Login exitoso → resetear intentos
+    await query(
+      "UPDATE usuario SET intentos_fallidos=0, bloqueado_hasta=NULL WHERE id=?",
+      [user.id]
+    );
+
     const token = jwt.sign(
       { id: user.id, rol: user.rol, nombre: user.nombre },
       SECRET,
@@ -108,7 +159,7 @@ app.post("/api/login", async (req, res) => {
       token,
       user: {
         id:         user.id,
-        id_cliente: user.id_cliente,
+        id_cliente: user.id_cliente || null,
         nombre:     user.nombre,
         correo:     user.correo,
         rol:        user.rol,
@@ -120,21 +171,31 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// REGISTRO (crea usuario con rol CLIENTE por defecto)
+// REGISTRO ─ RF1: agrega celular, valida email y contraseña
 app.post("/api/register", async (req, res) => {
   try {
-    const { nombre, correo, password } = req.body;
+    const { nombre, correo, password, celular } = req.body;
+
     if (!nombre || !correo || !password)
       return res.status(400).json({ error: "Datos incompletos" });
 
+    // RF1: Validar email con regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(correo.trim()))
+      return res.status(400).json({ error: "Formato de correo inválido" });
+
+    // RF1: Validar contraseña mínimo 6 caracteres
+    if (password.length < 6)
+      return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
+
     const hash = await bcrypt.hash(password, 10);
     const r    = await query(
-      "INSERT INTO usuario (nombre, correo, contrasena_hash, rol) VALUES (?,?,?,'CLIENTE')",
-      [nombre, correo.toLowerCase().trim(), hash]
+      "INSERT INTO usuario (nombre, correo, celular, contrasena_hash, rol) VALUES (?,?,?,?,'CLIENTE')",
+      [nombre.trim(), correo.toLowerCase().trim(), celular || null, hash]
     );
     await query(
       "INSERT INTO cliente (nombre, id_usuario) VALUES (?,?)",
-      [nombre, r.insertId]
+      [nombre.trim(), r.insertId]
     );
     res.json({ mensaje: "Usuario registrado como cliente" });
   } catch (e) {
@@ -148,23 +209,26 @@ app.post("/api/register", async (req, res) => {
 //  USUARIOS  (admin)
 // ═══════════════════════════════════════════════════════════════
 
-// Listar todos los usuarios
 app.get("/api/usuarios", verificarToken, soloAdmin, async (req, res) => {
   try {
     const rows = await query(
-      "SELECT id, nombre, correo, rol, estado, creado_en FROM usuario ORDER BY id DESC"
+      "SELECT id, nombre, correo, celular, rol, estado, creado_en FROM usuario ORDER BY id DESC"
     );
     res.json(rows);
   } catch (e) { res.status(500).json(e); }
 });
 
-// Crear operador o admin (solo admin puede)
 app.post("/api/usuarios", verificarToken, soloAdmin, async (req, res) => {
   try {
-    const { nombre, correo, password, rol = "OPERADOR" } = req.body;
+    const { nombre, correo, contrasena, password, rol = "OPERADOR" } = req.body;
+    const pass = contrasena || password;
+    if (!nombre || !correo || !pass)
+      return res.status(400).json({ error: "Datos incompletos" });
     if (!["OPERADOR", "ADMINISTRADOR", "CLIENTE"].includes(rol))
       return res.status(400).json({ error: "Rol inválido" });
-    const hash = await bcrypt.hash(password, 10);
+    if (pass.length < 6)
+      return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
+    const hash = await bcrypt.hash(pass, 10);
     const r    = await query(
       "INSERT INTO usuario (nombre, correo, contrasena_hash, rol) VALUES (?,?,?,?)",
       [nombre, correo.toLowerCase(), hash, rol]
@@ -181,7 +245,6 @@ app.post("/api/usuarios", verificarToken, soloAdmin, async (req, res) => {
   }
 });
 
-// Activar / desactivar usuario
 app.patch("/api/usuarios/:id/estado", verificarToken, soloAdmin, async (req, res) => {
   try {
     const { estado } = req.body;
@@ -193,7 +256,6 @@ app.patch("/api/usuarios/:id/estado", verificarToken, soloAdmin, async (req, res
   } catch (e) { res.status(500).json(e); }
 });
 
-// Cambiar rol de usuario (solo admin)
 app.patch("/api/usuarios/:id/rol", verificarToken, soloAdmin, async (req, res) => {
   try {
     const { rol } = req.body;
@@ -209,7 +271,6 @@ app.patch("/api/usuarios/:id/rol", verificarToken, soloAdmin, async (req, res) =
 //  CLIENTES
 // ═══════════════════════════════════════════════════════════════
 
-// Listar clientes (operador/admin)
 app.get("/api/clientes", verificarToken, operadorOAdmin, async (req, res) => {
   try {
     const { q } = req.query;
@@ -224,7 +285,6 @@ app.get("/api/clientes", verificarToken, operadorOAdmin, async (req, res) => {
   } catch (e) { res.status(500).json(e); }
 });
 
-// Crear cliente (operador/admin crea cliente sin cuenta de sistema)
 app.post("/api/clientes", verificarToken, operadorOAdmin, async (req, res) => {
   try {
     const { nombre, documento, telefono, email, direccion } = req.body;
@@ -243,7 +303,7 @@ app.post("/api/clientes", verificarToken, operadorOAdmin, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-//  REPUESTOS
+//  REPUESTOS  ─  RF10: POST y DELETE agregados, protegidos soloAdmin
 // ═══════════════════════════════════════════════════════════════
 
 app.get("/api/repuestos", async (req, res) => {
@@ -260,24 +320,66 @@ app.get("/api/repuestos/:id", async (req, res) => {
   } catch (e) { res.status(500).json(e); }
 });
 
-// Actualizar stock / precio (admin u operador)
+// RF10 FIX: POST /api/repuestos — crear repuesto (solo admin)
+app.post("/api/repuestos", verificarToken, soloAdmin, async (req, res) => {
+  try {
+    const { nombre, descripcion, categoria, marca, modelo_compatible, stock, precio, imagen_url } = req.body;
+    if (!nombre) return res.status(400).json({ error: "Nombre requerido" });
+    const r = await query(
+      `INSERT INTO repuesto (nombre, descripcion, categoria, marca, modelo_compatible, stock, precio, imagen_url)
+       VALUES (?,?,?,?,?,?,?,?)`,
+      [
+        nombre,
+        descripcion || null,
+        categoria   || null,
+        marca       || null,
+        modelo_compatible || null,
+        Number(stock)  || 0,
+        Number(precio) || 0,
+        imagen_url     || null,
+      ]
+    );
+    await auditar(req.user.id, "CREAR_REPUESTO", nombre, req.ip);
+    res.status(201).json({ id_repuesto: r.insertId, mensaje: "Repuesto creado" });
+  } catch (e) { res.status(500).json(e); }
+});
+
+// PUT /api/repuestos/:id — editar repuesto (admin u operador)
 app.put("/api/repuestos/:id", verificarToken, operadorOAdmin, async (req, res) => {
   try {
-    const { nombre, descripcion, categoria, marca, modelo_compatible, stock, precio } = req.body;
+    const { nombre, descripcion, categoria, marca, modelo_compatible, stock, precio, imagen_url } = req.body;
     await query(
-      `UPDATE repuesto SET nombre=?, descripcion=?, categoria=?, marca=?,
-       modelo_compatible=?, stock=?, precio=? WHERE id_repuesto=?`,
-      [nombre, descripcion, categoria, marca, modelo_compatible, stock, precio, req.params.id]
+      `UPDATE repuesto
+       SET nombre=?, descripcion=?, categoria=?, marca=?,
+           modelo_compatible=?, stock=?, precio=?, imagen_url=?
+       WHERE id_repuesto=?`,
+      [nombre, descripcion, categoria, marca, modelo_compatible, stock, precio, imagen_url || null, req.params.id]
     );
     res.json({ mensaje: "Repuesto actualizado" });
   } catch (e) { res.status(500).json(e); }
 });
 
+// RF10 FIX: DELETE /api/repuestos/:id — eliminar repuesto (solo admin)
+app.delete("/api/repuestos/:id", verificarToken, soloAdmin, async (req, res) => {
+  try {
+    const [row] = await query("SELECT id_repuesto FROM repuesto WHERE id_repuesto=?", [req.params.id]);
+    if (!row) return res.status(404).json({ error: "Repuesto no encontrado" });
+    await query("DELETE FROM repuesto WHERE id_repuesto=?", [req.params.id]);
+    await auditar(req.user.id, "ELIMINAR_REPUESTO", `ID ${req.params.id}`, req.ip);
+    res.json({ mensaje: "Repuesto eliminado" });
+  } catch (e) {
+    if (e.code === "ER_ROW_IS_REFERENCED_2")
+      return res.status(409).json({ error: "No se puede eliminar: el repuesto tiene pedidos asociados" });
+    res.status(500).json(e);
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════
-//  PEDIDOS  ─  lógica central con permisos por rol
+//  PEDIDOS  ─  RF4, RF5
 // ═══════════════════════════════════════════════════════════════
 
-// ── Crear pedido ──────────────────────────────────────────────
+// RF4 FIX: guardar precio_unitario en detalle_pedido
+// RF5 FIX: evitar duplicados con INSERT ... ON DUPLICATE KEY UPDATE
 app.post("/api/pedidos", verificarToken, async (req, res) => {
   try {
     const { id_cliente, detalles, prioridad, observaciones, fecha_entrega_estimada } = req.body;
@@ -295,7 +397,6 @@ app.post("/api/pedidos", verificarToken, async (req, res) => {
         return res.status(403).json({ error: "Solo puedes crear pedidos a tu cuenta" });
     }
 
-    // Insertar pedido
     const r = await query(
       `INSERT INTO pedido (id_cliente, id_usuario, id_estado, prioridad, observaciones, fecha_entrega_estimada)
        VALUES (?,?,1,?,?,?)`,
@@ -303,15 +404,17 @@ app.post("/api/pedidos", verificarToken, async (req, res) => {
     );
     const idPedido = r.insertId;
 
-    // Insertar detalles y descontar stock
+    // RF4 FIX: guardar precio_unitario; RF5 FIX: ON DUPLICATE KEY UPDATE cantidad
     for (const d of detalles) {
-      const [rep] = await query("SELECT stock FROM repuesto WHERE id_repuesto=?", [d.id_repuesto]);
+      const [rep] = await query("SELECT stock, precio FROM repuesto WHERE id_repuesto=?", [d.id_repuesto]);
       if (!rep || rep.stock < d.cantidad)
         return res.status(400).json({ error: `Stock insuficiente: repuesto ${d.id_repuesto}` });
 
       await query(
-        "INSERT INTO detalle_pedido (id_pedido, id_repuesto, cantidad) VALUES (?,?,?)",
-        [idPedido, d.id_repuesto, d.cantidad]
+        `INSERT INTO detalle_pedido (id_pedido, id_repuesto, cantidad, precio_unitario)
+         VALUES (?,?,?,?)
+         ON DUPLICATE KEY UPDATE cantidad = cantidad + VALUES(cantidad)`,
+        [idPedido, d.id_repuesto, d.cantidad, rep.precio]
       );
       await query(
         "UPDATE repuesto SET stock = stock - ? WHERE id_repuesto=?",
@@ -319,7 +422,6 @@ app.post("/api/pedidos", verificarToken, async (req, res) => {
       );
     }
 
-    // Historial inicial NULL → PENDIENTE
     await query(
       "INSERT INTO historial_estado (id_pedido, id_usuario, id_estado_anterior, id_estado_nuevo) VALUES (?,?,NULL,1)",
       [idPedido, id_usuario]
@@ -330,10 +432,12 @@ app.post("/api/pedidos", verificarToken, async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: e.message }); }
 });
 
-// ── Listar pedidos (filtrado por rol) ─────────────────────────
+// RF5 FIX: filtro correcto estado/fecha; RF8 FIX: acepta estado, fecha_desde, fecha_hasta
+// RF8 FIX: búsqueda por nombre de cliente y por ID de pedido
 app.get("/api/pedidos", verificarToken, async (req, res) => {
   try {
-    const { estado, fecha_desde, fecha_hasta, id_cliente } = req.query;
+    // RF8 FIX: parámetros corregidos: estado (no id_estado), fecha_desde, fecha_hasta
+    const { estado, fecha_desde, fecha_hasta, id_cliente, busqueda, limite } = req.query;
     const rol  = req.user.rol;
     const uid  = req.user.id;
 
@@ -348,7 +452,6 @@ app.get("/api/pedidos", verificarToken, async (req, res) => {
       WHERE 1=1`;
     const params = [];
 
-    // Filtro por rol
     if (rol === "CLIENTE") {
       sql += " AND p.id_usuario = ?"; params.push(uid);
     } else if (rol === "OPERADOR") {
@@ -356,17 +459,25 @@ app.get("/api/pedidos", verificarToken, async (req, res) => {
     }
     // ADMIN ve todos
 
-    if (estado)       { sql += " AND p.id_estado = ?";         params.push(estado); }
-    if (fecha_desde)  { sql += " AND DATE(p.fecha_creacion) >= ?"; params.push(fecha_desde); }
-    if (fecha_hasta)  { sql += " AND DATE(p.fecha_creacion) <= ?"; params.push(fecha_hasta); }
+    // RF8 FIX: usar nombre de campo correcto
+    if (estado)       { sql += " AND p.id_estado = ?";              params.push(estado); }
+    if (fecha_desde)  { sql += " AND DATE(p.fecha_creacion) >= ?";  params.push(fecha_desde); }
+    if (fecha_hasta)  { sql += " AND DATE(p.fecha_creacion) <= ?";  params.push(fecha_hasta); }
     if (id_cliente && rol !== "CLIENTE") { sql += " AND p.id_cliente = ?"; params.push(id_cliente); }
 
+    // RF8 FIX: búsqueda por nombre de cliente o ID de pedido
+    if (busqueda) {
+      sql += " AND (c.nombre LIKE ? OR CAST(p.id_pedido AS CHAR) LIKE ?)";
+      params.push(`%${busqueda}%`, `%${busqueda}%`);
+    }
+
     sql += " ORDER BY p.fecha_creacion DESC";
+    if (limite) { sql += " LIMIT ?"; params.push(parseInt(limite)); }
+
     res.json(await query(sql, params));
   } catch (e) { res.status(500).json(e); }
 });
 
-// ── Detalle de pedido ─────────────────────────────────────────
 app.get("/api/pedidos/:id", verificarToken, async (req, res) => {
   try {
     const id   = req.params.id;
@@ -377,7 +488,7 @@ app.get("/api/pedidos/:id", verificarToken, async (req, res) => {
       `SELECT p.*, e.nombre_estado,
               c.nombre AS cliente_nombre,
               u.nombre AS usuario_nombre,
-              d.id_detalle, d.id_repuesto, d.cantidad,
+              d.id_detalle, d.id_repuesto, d.cantidad, d.precio_unitario,
               r.nombre AS repuesto_nombre, r.descripcion AS repuesto_desc, r.stock
        FROM pedido p
        JOIN estado_pedido e  ON p.id_estado    = e.id_estado
@@ -391,7 +502,6 @@ app.get("/api/pedidos/:id", verificarToken, async (req, res) => {
 
     if (!rows.length) return res.status(404).json({ error: "Pedido no encontrado" });
 
-    // Restricción por rol
     const pedido = rows[0];
     if (rol === "CLIENTE" && String(pedido.id_usuario) !== String(uid))
       return res.status(403).json({ error: "No es tu pedido" });
@@ -402,7 +512,6 @@ app.get("/api/pedidos/:id", verificarToken, async (req, res) => {
   } catch (e) { res.status(500).json(e); }
 });
 
-// ── Cambiar estado del pedido ─────────────────────────────────
 app.put("/api/pedidos/:id/estado", verificarToken, async (req, res) => {
   try {
     const id      = req.params.id;
@@ -419,13 +528,11 @@ app.put("/api/pedidos/:id/estado", verificarToken, async (req, res) => {
 
     const estadoActual = pedido.id_estado;
 
-    // Reglas de negocio
     if (estadoActual === 4)
       return res.status(400).json({ error: "No se puede cambiar un pedido CANCELADO" });
     if (estadoActual === 3 && id_estado !== 4)
       return res.status(400).json({ error: "Pedido FINALIZADO solo puede cancelarse" });
 
-    // Permisos por rol
     if (rol === "CLIENTE")
       return res.status(403).json({ error: "Clientes no pueden cambiar estados" });
     if (rol === "OPERADOR" && String(pedido.id_usuario) !== String(uid))
@@ -443,7 +550,6 @@ app.put("/api/pedidos/:id/estado", verificarToken, async (req, res) => {
   } catch (e) { res.status(500).json(e); }
 });
 
-// ── Editar pedido ─────────────────────────────────────────────
 app.put("/api/pedidos/:id", verificarToken, async (req, res) => {
   try {
     const id   = req.params.id;
@@ -463,31 +569,31 @@ app.put("/api/pedidos/:id", verificarToken, async (req, res) => {
     if (rol === "OPERADOR" && String(pedido.id_usuario) !== String(uid))
       return res.status(403).json({ error: "No es tu pedido" });
 
-    // Devolver stock anterior
-    const detallesViejos = await query(
-      "SELECT id_repuesto, cantidad FROM detalle_pedido WHERE id_pedido=?", [id]
-    );
-    for (const d of detallesViejos) {
-      await query(
-        "UPDATE repuesto SET stock = stock + ? WHERE id_repuesto=?",
-        [d.cantidad, d.id_repuesto]
+    if (detalles?.length) {
+      const detallesViejos = await query(
+        "SELECT id_repuesto, cantidad FROM detalle_pedido WHERE id_pedido=?", [id]
       );
-    }
+      for (const d of detallesViejos) {
+        await query(
+          "UPDATE repuesto SET stock = stock + ? WHERE id_repuesto=?",
+          [d.cantidad, d.id_repuesto]
+        );
+      }
 
-    // Reemplazar detalles
-    await query("DELETE FROM detalle_pedido WHERE id_pedido=?", [id]);
-    for (const d of detalles) {
-      const [rep] = await query("SELECT stock FROM repuesto WHERE id_repuesto=?", [d.id_repuesto]);
-      if (!rep || rep.stock < d.cantidad)
-        return res.status(400).json({ error: `Stock insuficiente: repuesto ${d.id_repuesto}` });
-      await query(
-        "INSERT INTO detalle_pedido (id_pedido, id_repuesto, cantidad) VALUES (?,?,?)",
-        [id, d.id_repuesto, d.cantidad]
-      );
-      await query(
-        "UPDATE repuesto SET stock = stock - ? WHERE id_repuesto=?",
-        [d.cantidad, d.id_repuesto]
-      );
+      await query("DELETE FROM detalle_pedido WHERE id_pedido=?", [id]);
+      for (const d of detalles) {
+        const [rep] = await query("SELECT stock, precio FROM repuesto WHERE id_repuesto=?", [d.id_repuesto]);
+        if (!rep || rep.stock < d.cantidad)
+          return res.status(400).json({ error: `Stock insuficiente: repuesto ${d.id_repuesto}` });
+        await query(
+          "INSERT INTO detalle_pedido (id_pedido, id_repuesto, cantidad, precio_unitario) VALUES (?,?,?,?)",
+          [id, d.id_repuesto, d.cantidad, rep.precio]
+        );
+        await query(
+          "UPDATE repuesto SET stock = stock - ? WHERE id_repuesto=?",
+          [d.cantidad, d.id_repuesto]
+        );
+      }
     }
 
     if (prioridad !== undefined || observaciones !== undefined) {
@@ -502,7 +608,6 @@ app.put("/api/pedidos/:id", verificarToken, async (req, res) => {
   } catch (e) { res.status(500).json(e); }
 });
 
-// ── Cancelar pedido ───────────────────────────────────────────
 app.put("/api/pedidos/:id/cancelar", verificarToken, async (req, res) => {
   try {
     const id  = req.params.id;
@@ -521,7 +626,6 @@ app.put("/api/pedidos/:id/cancelar", verificarToken, async (req, res) => {
     if (rol === "OPERADOR" && String(pedido.id_usuario) !== String(uid))
       return res.status(403).json({ error: "Solo puedes cancelar tus propios pedidos" });
 
-    // Devolver stock
     const detalles = await query(
       "SELECT id_repuesto, cantidad FROM detalle_pedido WHERE id_pedido=?", [id]
     );
@@ -545,7 +649,6 @@ app.put("/api/pedidos/:id/cancelar", verificarToken, async (req, res) => {
   } catch (e) { res.status(500).json(e); }
 });
 
-// ── Historial de estados ──────────────────────────────────────
 app.get("/api/pedidos/:id/historial", verificarToken, async (req, res) => {
   try {
     const rows = await query(
@@ -566,7 +669,7 @@ app.get("/api/pedidos/:id/historial", verificarToken, async (req, res) => {
   } catch (e) { res.status(500).json(e); }
 });
 
-// ── Pedidos del usuario autenticado ───────────────────────────
+// RF5 FIX: /api/mis-pedidos usa req.user.id (no parámetro externo)
 app.get("/api/mis-pedidos", verificarToken, async (req, res) => {
   try {
     const rows = await query(
@@ -583,20 +686,26 @@ app.get("/api/mis-pedidos", verificarToken, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-//  ANALYTICS
+//  ANALYTICS  ─  RF9: filtros por rango de fechas
 // ═══════════════════════════════════════════════════════════════
 
-// Resumen general (cards dashboard)
 app.get("/api/analytics/resumen", verificarToken, operadorOAdmin, async (req, res) => {
   try {
-    const [totales]  = await query(
+    const { fecha_desde, fecha_hasta } = req.query;
+    let filtro = "";
+    const params = [];
+    if (fecha_desde) { filtro += " AND DATE(fecha_creacion) >= ?"; params.push(fecha_desde); }
+    if (fecha_hasta) { filtro += " AND DATE(fecha_creacion) <= ?"; params.push(fecha_hasta); }
+
+    const [totales] = await query(
       `SELECT
         COUNT(*) AS total,
         SUM(id_estado=1) AS pendientes,
         SUM(id_estado=2) AS en_proceso,
         SUM(id_estado=3) AS finalizados,
         SUM(id_estado=4) AS cancelados
-       FROM pedido`
+       FROM pedido WHERE 1=1${filtro}`,
+      params
     );
     const [hoy] = await query(
       "SELECT COUNT(*) AS pedidos_hoy FROM pedido WHERE DATE(fecha_creacion)=CURDATE()"
@@ -608,9 +717,14 @@ app.get("/api/analytics/resumen", verificarToken, operadorOAdmin, async (req, re
   } catch (e) { res.status(500).json(e); }
 });
 
-// Repuestos más vendidos
 app.get("/api/analytics/top-repuestos", verificarToken, operadorOAdmin, async (req, res) => {
   try {
+    const { fecha_desde, fecha_hasta } = req.query;
+    let filtro = "";
+    const params = [];
+    if (fecha_desde) { filtro += " AND DATE(p.fecha_creacion) >= ?"; params.push(fecha_desde); }
+    if (fecha_hasta) { filtro += " AND DATE(p.fecha_creacion) <= ?"; params.push(fecha_hasta); }
+
     const rows = await query(
       `SELECT r.nombre, r.categoria,
               SUM(d.cantidad) AS total_vendido,
@@ -618,30 +732,34 @@ app.get("/api/analytics/top-repuestos", verificarToken, operadorOAdmin, async (r
        FROM detalle_pedido d
        JOIN repuesto r ON d.id_repuesto = r.id_repuesto
        JOIN pedido p ON d.id_pedido = p.id_pedido
-       WHERE p.id_estado != 4
+       WHERE p.id_estado != 4${filtro}
        GROUP BY d.id_repuesto
        ORDER BY total_vendido DESC
-       LIMIT 10`
+       LIMIT 10`,
+      params
     );
     res.json(rows);
   } catch (e) { res.status(500).json(e); }
 });
 
-// Pedidos por día (últimos 30 días)
 app.get("/api/analytics/pedidos-por-dia", verificarToken, operadorOAdmin, async (req, res) => {
   try {
+    const { fecha_desde, fecha_hasta } = req.query;
+    const desde = fecha_desde || null;
+    const hasta = fecha_hasta || null;
     const rows = await query(
       `SELECT DATE(fecha_creacion) AS fecha, COUNT(*) AS cantidad
        FROM pedido
-       WHERE fecha_creacion >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+       WHERE (? IS NULL OR DATE(fecha_creacion) >= ?)
+         AND (? IS NULL OR DATE(fecha_creacion) <= ?)
        GROUP BY DATE(fecha_creacion)
-       ORDER BY fecha ASC`
+       ORDER BY fecha ASC`,
+      [desde, desde, hasta, hasta]
     );
     res.json(rows);
   } catch (e) { res.status(500).json(e); }
 });
 
-// Top clientes
 app.get("/api/analytics/top-clientes", verificarToken, operadorOAdmin, async (req, res) => {
   try {
     const rows = await query(
@@ -657,7 +775,6 @@ app.get("/api/analytics/top-clientes", verificarToken, operadorOAdmin, async (re
   } catch (e) { res.status(500).json(e); }
 });
 
-// Stock actual
 app.get("/api/analytics/stock", verificarToken, operadorOAdmin, async (req, res) => {
   try {
     const rows = await query(
@@ -667,7 +784,6 @@ app.get("/api/analytics/stock", verificarToken, operadorOAdmin, async (req, res)
   } catch (e) { res.status(500).json(e); }
 });
 
-// Distribución de estados
 app.get("/api/analytics/estados", verificarToken, operadorOAdmin, async (req, res) => {
   try {
     const rows = await query(

@@ -1,12 +1,14 @@
 // server/middlewares/auth.js
-// ─────────────────────────────────────────────────────────────
-// Middleware JWT + control de roles
-// ─────────────────────────────────────────────────────────────
+// RF2 FIX: SECRET sin fallback hardcodeado
 const jwt = require("jsonwebtoken");
 
-const SECRET = process.env.JWT_SECRET || "secreto123";
+// SECRET solo desde variable de entorno — sin || "secreto123"
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET) {
+  console.error("❌ JWT_SECRET no definido en .env");
+  process.exit(1);
+}
 
-// ── Verifica token JWT ──────────────────────────────────────
 function verificarToken(req, res, next) {
   const auth = req.headers["authorization"];
   if (!auth || !auth.startsWith("Bearer ")) {
@@ -15,14 +17,13 @@ function verificarToken(req, res, next) {
   const token = auth.split(" ")[1];
   try {
     const decoded = jwt.verify(token, SECRET);
-    req.user = decoded; // { id, rol, nombre }
+    req.user = decoded;
     next();
   } catch {
     return res.status(401).json({ error: "Token inválido o expirado" });
   }
 }
 
-// ── Fábrica de middleware de rol ────────────────────────────
 function soloRol(...roles) {
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ error: "No autenticado" });

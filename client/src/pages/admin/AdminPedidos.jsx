@@ -1,4 +1,6 @@
-// pages/admin/AdminPedidos.jsx
+// client/src/pages/admin/AdminPedidos.jsx
+// RF8 FIX: buildParams() usa estado (no id_estado), fecha_desde, fecha_hasta
+// RF8 FIX: agrega búsqueda por nombre de cliente y por ID de pedido (campo busqueda)
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -13,13 +15,11 @@ import EstadoBadge from "../../components/EstadoBadge";
 import Timeline    from "../../components/Timeline";
 
 const ACENTO = "#7c3aed";
-
 const estadoLabel = { 1: "PENDIENTE", 2: "EN PROCESO", 3: "FINALIZADO", 4: "CANCELADO" };
 
 export default function AdminPedidos() {
   const navigate = useNavigate();
 
-  // Datos
   const [pedidos,      setPedidos]      = useState([]);
   const [estados,      setEstados]      = useState([]);
   const [loading,      setLoading]      = useState(true);
@@ -33,31 +33,35 @@ export default function AdminPedidos() {
   const [filtroPrior,  setFiltroPrior]  = useState("");
 
   // Modales
-  const [historialModal,  setHistorialModal]  = useState(null);
-  const [historial,       setHistorial]       = useState([]);
-  const [loadingH,        setLoadingH]        = useState(false);
-
-  const [estadoModal,  setEstadoModal]  = useState(null);
-  const [nuevoEstado,  setNuevoEstado]  = useState("");
-  const [guardandoE,   setGuardandoE]   = useState(false);
-
-  const [editModal,    setEditModal]    = useState(null);
-  const [editForm,     setEditForm]     = useState({ prioridad: "", observaciones: "", fecha_entrega_estimada: "" });
-  const [guardandoEdit, setGuardandoEdit] = useState(false);
+  const [historialModal, setHistorialModal] = useState(null);
+  const [historial,      setHistorial]      = useState([]);
+  const [loadingH,       setLoadingH]       = useState(false);
+  const [estadoModal,    setEstadoModal]    = useState(null);
+  const [nuevoEstado,    setNuevoEstado]    = useState("");
+  const [guardandoE,     setGuardandoE]     = useState(false);
+  const [editModal,      setEditModal]      = useState(null);
+  const [editForm,       setEditForm]       = useState({ prioridad: "", observaciones: "", fecha_entrega_estimada: "" });
+  const [guardandoEdit,  setGuardandoEdit]  = useState(false);
 
   useEffect(() => {
     cargar();
     getEstados().then(setEstados).catch(() => {});
   }, []);
 
+  // RF8 FIX: params con nombres correctos que acepta el backend
   const buildParams = useCallback(() => {
     const p = {};
-    if (filtroEstado) p.id_estado = filtroEstado;
-    if (filtroFechaD) p.desde     = filtroFechaD;
-    if (filtroFechaH) p.hasta     = filtroFechaH;
-    if (filtroPrior)  p.prioridad = filtroPrior;
+    // RF8 FIX: estado (no id_estado)
+    if (filtroEstado) p.estado      = filtroEstado;
+    // RF8 FIX: fecha_desde (no desde)
+    if (filtroFechaD) p.fecha_desde = filtroFechaD;
+    // RF8 FIX: fecha_hasta (no hasta)
+    if (filtroFechaH) p.fecha_hasta = filtroFechaH;
+    if (filtroPrior)  p.prioridad   = filtroPrior;
+    // RF8 FIX: búsqueda por nombre de cliente o ID de pedido
+    if (busqueda)     p.busqueda    = busqueda;
     return p;
-  }, [filtroEstado, filtroFechaD, filtroFechaH, filtroPrior]);
+  }, [filtroEstado, filtroFechaD, filtroFechaH, filtroPrior, busqueda]);
 
   const cargar = async () => {
     try {
@@ -78,7 +82,6 @@ export default function AdminPedidos() {
     setTimeout(cargar, 0);
   };
 
-  // ── Historial
   const abrirHistorial = async (p) => {
     setHistorialModal(p);
     setHistorial([]);
@@ -90,7 +93,6 @@ export default function AdminPedidos() {
     finally { setLoadingH(false); }
   };
 
-  // ── Cambiar estado
   const abrirCambioEstado = (p) => {
     setEstadoModal(p);
     setNuevoEstado(String(p.id_estado));
@@ -110,7 +112,6 @@ export default function AdminPedidos() {
     }
   };
 
-  // ── Cancelar
   const handleCancelar = async (p) => {
     if (!window.confirm(`¿Cancelar pedido #${p.id_pedido}? Se restaurará el stock.`)) return;
     try {
@@ -121,15 +122,12 @@ export default function AdminPedidos() {
     }
   };
 
-  // ── Editar
   const abrirEditar = (p) => {
     setEditModal(p);
     setEditForm({
       prioridad: p.prioridad || "",
       observaciones: p.observaciones || "",
-      fecha_entrega_estimada: p.fecha_entrega_estimada
-        ? p.fecha_entrega_estimada.slice(0, 16)
-        : "",
+      fecha_entrega_estimada: p.fecha_entrega_estimada ? p.fecha_entrega_estimada.slice(0, 16) : "",
     });
   };
 
@@ -151,20 +149,19 @@ export default function AdminPedidos() {
     }
   };
 
-  // Filtro cliente-side por búsqueda
+  // Filtro local adicional por búsqueda de texto (complementa el server-side)
   const pedidosFiltrados = pedidos.filter(p => {
     if (!busqueda) return true;
     const b = busqueda.toLowerCase();
     return (
       String(p.id_pedido).includes(b) ||
       (p.cliente_nombre || "").toLowerCase().includes(b) ||
-      (p.nombre_estado || "").toLowerCase().includes(b)
+      (p.nombre_estado  || "").toLowerCase().includes(b)
     );
   });
 
   return (
     <div style={s.page}>
-      {/* Header */}
       <div style={s.header}>
         <div>
           <h1 style={s.title}>Todos los pedidos</h1>
@@ -173,10 +170,10 @@ export default function AdminPedidos() {
         <button style={s.btnBack} onClick={() => navigate("/admin")}>← Dashboard</button>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros — RF8 FIX */}
       <div style={s.filtrosBox}>
         <input
-          placeholder="Buscar #ID, cliente, estado..."
+          placeholder="Buscar #ID o nombre de cliente..."
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
           style={s.input}
@@ -203,7 +200,6 @@ export default function AdminPedidos() {
       {error   && <div style={s.errorBox}>{error}</div>}
       {loading && <div style={s.loadingBox}>Cargando pedidos...</div>}
 
-      {/* Tabla */}
       {!loading && (
         <div style={s.tableWrap}>
           <table style={s.table}>
@@ -225,16 +221,11 @@ export default function AdminPedidos() {
                 <tr key={p.id_pedido} style={s.tr}>
                   <td style={s.td}><strong style={{ color: ACENTO }}>#{p.id_pedido}</strong></td>
                   <td style={s.td}>{p.cliente_nombre || "—"}</td>
-                  <td style={s.td}>
-                    <EstadoBadge estado={p.nombre_estado || estadoLabel[p.id_estado]} />
-                  </td>
+                  <td style={s.td}><EstadoBadge estado={p.nombre_estado || estadoLabel[p.id_estado]} /></td>
                   <td style={s.td}>
                     {p.prioridad ? (
                       <span style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "2px 8px",
-                        borderRadius: 20,
+                        fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
                         background: p.prioridad === "ALTA" ? "#fee2e2" : p.prioridad === "MEDIA" ? "#fef3c7" : "#f0fdf4",
                         color:      p.prioridad === "ALTA" ? "#991b1b" : p.prioridad === "MEDIA" ? "#92400e" : "#065f46",
                       }}>
@@ -266,7 +257,7 @@ export default function AdminPedidos() {
         </div>
       )}
 
-      {/* ── Modal Historial ── */}
+      {/* Modal Historial */}
       {historialModal && (
         <div style={s.overlay} onClick={() => setHistorialModal(null)}>
           <div style={s.modal} onClick={e => e.stopPropagation()}>
@@ -279,7 +270,7 @@ export default function AdminPedidos() {
         </div>
       )}
 
-      {/* ── Modal Cambiar Estado ── */}
+      {/* Modal Cambiar Estado */}
       {estadoModal && (
         <div style={s.overlay} onClick={() => setEstadoModal(null)}>
           <div style={{ ...s.modal, maxWidth: 400 }} onClick={e => e.stopPropagation()}>
@@ -309,7 +300,7 @@ export default function AdminPedidos() {
         </div>
       )}
 
-      {/* ── Modal Editar ── */}
+      {/* Modal Editar */}
       {editModal && (
         <div style={s.overlay} onClick={() => setEditModal(null)}>
           <div style={{ ...s.modal, maxWidth: 480 }} onClick={e => e.stopPropagation()}>
@@ -320,11 +311,7 @@ export default function AdminPedidos() {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
                 <label style={s.label}>Prioridad</label>
-                <select
-                  value={editForm.prioridad}
-                  onChange={e => setEditForm(f => ({ ...f, prioridad: e.target.value }))}
-                  style={{ ...s.select, width: "100%" }}
-                >
+                <select value={editForm.prioridad} onChange={e => setEditForm(f => ({ ...f, prioridad: e.target.value }))} style={{ ...s.select, width: "100%" }}>
                   <option value="">Sin prioridad</option>
                   <option value="ALTA">ALTA</option>
                   <option value="MEDIA">MEDIA</option>
@@ -333,22 +320,11 @@ export default function AdminPedidos() {
               </div>
               <div>
                 <label style={s.label}>Fecha entrega estimada</label>
-                <input
-                  type="datetime-local"
-                  value={editForm.fecha_entrega_estimada}
-                  onChange={e => setEditForm(f => ({ ...f, fecha_entrega_estimada: e.target.value }))}
-                  style={{ ...s.input, width: "100%" }}
-                />
+                <input type="datetime-local" value={editForm.fecha_entrega_estimada} onChange={e => setEditForm(f => ({ ...f, fecha_entrega_estimada: e.target.value }))} style={{ ...s.input, width: "100%" }} />
               </div>
               <div>
                 <label style={s.label}>Observaciones</label>
-                <textarea
-                  value={editForm.observaciones}
-                  onChange={e => setEditForm(f => ({ ...f, observaciones: e.target.value }))}
-                  rows={3}
-                  style={{ ...s.input, width: "100%", resize: "vertical" }}
-                  placeholder="Observaciones del pedido..."
-                />
+                <textarea value={editForm.observaciones} onChange={e => setEditForm(f => ({ ...f, observaciones: e.target.value }))} rows={3} style={{ ...s.input, width: "100%", resize: "vertical" }} />
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button style={{ ...s.btnPrimary, flex: 1 }} onClick={guardarEdicion} disabled={guardandoEdit}>
@@ -374,7 +350,6 @@ const s = {
   filtrosBox:  { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20, padding: "16px 20px", background: "#fff", borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", border: "1px solid #e2e8f0" },
   input:       { padding: "8px 12px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 14, outline: "none", background: "#f8fafc", color: "#1e293b" },
   select:      { padding: "8px 12px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 14, background: "#f8fafc", color: "#1e293b" },
-  btnFilter:   { background: "#7c3aed", color: "#fff", border: "none", padding: "8px 18px", borderRadius: 8, fontWeight: 700, cursor: "pointer" },
   btnClear:    { background: "#f1f5f9", color: "#64748b", border: "1px solid #e2e8f0", padding: "8px 18px", borderRadius: 8, fontWeight: 600, cursor: "pointer" },
   errorBox:    { background: "#fef2f2", color: "#ef4444", padding: "12px 18px", borderRadius: 10, marginBottom: 16 },
   loadingBox:  { textAlign: "center", color: "#64748b", padding: 40 },
@@ -389,4 +364,5 @@ const s = {
   modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
   closeBtn:    { background: "#f1f5f9", border: "none", width: 32, height: 32, borderRadius: 8, cursor: "pointer", fontSize: 16, color: "#64748b" },
   label:       { display: "block", marginBottom: 6, fontSize: 13, fontWeight: 600, color: "#374151" },
+  toast:       { padding: "12px 18px", borderRadius: 10, marginBottom: 16, fontWeight: 600, fontSize: 14 },
 };
