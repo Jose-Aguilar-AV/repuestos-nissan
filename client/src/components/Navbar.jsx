@@ -49,7 +49,7 @@ export default function Navbar() {
 
         {isCliente && (
           <>
-            {link("/pedido/nuevo",  "🛒 Carrito")}
+            {link("/pedido/nuevo",  "Carrito")}
             {link("/mis-pedidos",   "Mis pedidos")}
           </>
         )}
@@ -68,6 +68,8 @@ export default function Navbar() {
             {link("/admin/pedidos",    "Pedidos")}
             {link("/admin/usuarios",   "Usuarios")}
             {link("/admin/analytics",  "Analytics")}
+            {link("/pedido/nuevo",  "Carrito")}
+            {link("/mis-pedidos",   "Mis pedidos")}
           </>
         )}
       </div>
