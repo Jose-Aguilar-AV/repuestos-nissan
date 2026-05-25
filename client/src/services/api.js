@@ -1,9 +1,10 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// services/api.js  ─  Capa de datos centralizada con JWT automático
-// Apunta a server/index.js (puerto 3000)
-// ─────────────────────────────────────────────────────────────────────────────
+// client/src/services/api.js
+// Capa de datos centralizada con JWT automático
+// Apunta a server/index.js via proxy Vite (localhost:3000)
+// FIX: añadido getStock() que faltaba (usada en DetalleProducto.jsx)
+// FIX: funciones analytics aceptan filtros opcionales { fecha_desde, fecha_hasta }
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 // ── Helper base ───────────────────────────────────────────────────────────────
 async function req(url, options = {}) {
@@ -44,6 +45,8 @@ export const register = (data)             => post("/register", data);
 // ═════════════════════════════════════════════════════════════════════════════
 export const getRepuestos   = ()         => get("/repuestos");
 export const getRepuesto    = (id)       => get(`/repuestos/${id}`);
+// FIX: getStock — antes inexistente; el backend devuelve el repuesto completo con stock
+export const getStock       = (id)       => get(`/repuestos/${id}`);
 export const editarRepuesto = (id, data) => put(`/repuestos/${id}`, data);
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -55,20 +58,20 @@ export const crearCliente = (data) => post("/clientes", data);
 // ═════════════════════════════════════════════════════════════════════════════
 //  PEDIDOS
 // ═════════════════════════════════════════════════════════════════════════════
-export const getPedidos      = (filtros = {}) => get("/pedidos", filtros);
-export const getMisPedidos   = ()             => get("/mis-pedidos");
-export const getPedido       = (id)           => get(`/pedidos/${id}`);
-export const actualizarPedido = (id, data) => put(`/pedidos/${id}`, data);
-export const crearPedido     = (data)         => post("/pedidos", data);
-export const editarPedido    = (id, data)     => put(`/pedidos/${id}`, data);
-export const cancelarPedido  = (id)           => put(`/pedidos/${id}/cancelar`);
-export const cambiarEstado   = (id, id_estado) => put(`/pedidos/${id}/estado`, { id_estado });
+export const getPedidos       = (filtros = {}) => get("/pedidos", filtros);
+export const getMisPedidos    = ()             => get("/mis-pedidos");
+export const getPedido        = (id)           => get(`/pedidos/${id}`);
+export const actualizarPedido = (id, data)     => put(`/pedidos/${id}`, data);
+export const crearPedido      = (data)         => post("/pedidos", data);
+export const editarPedido     = (id, data)     => put(`/pedidos/${id}`, data);
+export const cancelarPedido   = (id)           => put(`/pedidos/${id}/cancelar`);
+export const cambiarEstado    = (id, id_estado) => put(`/pedidos/${id}/estado`, { id_estado });
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  HISTORIAL
 // ═════════════════════════════════════════════════════════════════════════════
 export const getHistorialPedido = (id) => get(`/pedidos/${id}/historial`);
-// alias por compatibilidad con páginas que importan getHistorial
+// alias por compatibilidad
 export const getHistorial = getHistorialPedido;
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -79,17 +82,18 @@ export const getEstados = () => get("/estados");
 // ═════════════════════════════════════════════════════════════════════════════
 //  USUARIOS  (solo admin)
 // ═════════════════════════════════════════════════════════════════════════════
-export const getUsuarios         = ()               => get("/usuarios");
-export const crearUsuario        = (data)           => post("/usuarios", data);
-export const toggleEstadoUsuario = (id, estado)     => patch(`/usuarios/${id}/estado`, { estado });
-export const cambiarRolUsuario   = (id, rol)        => patch(`/usuarios/${id}/rol`, { rol });
+export const getUsuarios         = ()           => get("/usuarios");
+export const crearUsuario        = (data)       => post("/usuarios", data);
+export const toggleEstadoUsuario = (id, estado) => patch(`/usuarios/${id}/estado`, { estado });
+export const cambiarRolUsuario   = (id, rol)    => patch(`/usuarios/${id}/rol`, { rol });
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  ANALYTICS
+// FIX: todas las funciones aceptan filtros opcionales { fecha_desde, fecha_hasta }
 // ═════════════════════════════════════════════════════════════════════════════
-export const getResumen          = () => get("/analytics/resumen");
-export const getTopRepuestos     = () => get("/analytics/top-repuestos");
-export const getPedidosPorDia    = () => get("/analytics/pedidos-por-dia");
-export const getTopClientes      = () => get("/analytics/top-clientes");
-export const getStockAnalytics   = () => get("/analytics/stock");
-export const getEstadosAnalytics = () => get("/analytics/estados");
+export const getResumen          = (filtros = {}) => get("/analytics/resumen",       filtros);
+export const getTopRepuestos     = (filtros = {}) => get("/analytics/top-repuestos", filtros);
+export const getPedidosPorDia    = (filtros = {}) => get("/analytics/pedidos-por-dia", filtros);
+export const getTopClientes      = ()             => get("/analytics/top-clientes");
+export const getStockAnalytics   = ()             => get("/analytics/stock");
+export const getEstadosAnalytics = ()             => get("/analytics/estados");

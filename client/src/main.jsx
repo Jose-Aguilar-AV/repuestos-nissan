@@ -1,4 +1,6 @@
 // client/src/main.jsx
+// FIX: import de AuthProvider apunta a useAuth.jsx (renombrado desde .js)
+// Nota: Vite resuelve sin extensión, pero el archivo DEBE ser .jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";

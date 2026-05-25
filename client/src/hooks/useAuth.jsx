@@ -1,5 +1,6 @@
-// client/src/hooks/useAuth.js
-// RF2 FIX: Context real con useState y useEffect para reactividad
+// client/src/hooks/useAuth.jsx
+// FIX: renombrado de .js a .jsx — contiene JSX (<AuthContext.Provider>)
+// Vite + @vitejs/plugin-react NO procesa JSX en archivos .js por defecto
 import { createContext, useContext, useState, useEffect } from "react";
 
 const AuthContext = createContext(null);
