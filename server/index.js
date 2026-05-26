@@ -805,6 +805,97 @@ app.get("/api/estados", async (req, res) => {
   } catch (e) { res.status(500).json(e); }
 });
 
+
+// Agregar en server/index.js
+// Endpoint público para integración con sistemas externos
+// Devuelve pedidos en formato compatible con la API del sistema aliado
+
+app.get("/api/pedidos-externos", (req, res) => {
+  const sql = `
+    SELECT
+      p.id_pedido,
+      p.id_estado,
+      ep.nombre_estado                          AS estadoPedido,
+      u.nombre                                  AS clienteNombre,
+      p.fecha_creacion                          AS fechaCreacion,
+      p.fecha_actualizacion                     AS fechaActualizacion,
+      SUM(d.cantidad * COALESCE(r.precio, 0))   AS total,
+      GROUP_CONCAT(
+        CONCAT(r.nombre, ' x', d.cantidad)
+        ORDER BY r.nombre SEPARATOR ', '
+      )                                         AS descripcionItems
+    FROM pedido p
+    JOIN usuario      u  ON p.id_usuario  = u.id
+    JOIN estado_pedido ep ON p.id_estado  = ep.id_estado
+    JOIN detalle_pedido d ON p.id_pedido  = d.id_pedido
+    JOIN repuesto       r ON d.id_repuesto = r.id_repuesto
+    GROUP BY
+      p.id_pedido, p.id_estado, ep.nombre_estado,
+      u.nombre, p.fecha_creacion, p.fecha_actualizacion
+    ORDER BY p.fecha_creacion DESC
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+
+    // Mapear al formato compatible con el sistema externo
+    const resultado = rows.map(p => ({
+      id:                 p.id_pedido,
+      numeroOrden:        `ORD-NISSAN-${String(p.id_pedido).padStart(4, "0")}`,
+      estadoPedido:       p.estadoPedido,
+      clienteNombre:      p.clienteNombre,
+      descripcionItems:   p.descripcionItems,
+      fechaCreacion:      p.fechaCreacion,
+      fechaActualizacion: p.fechaActualizacion,
+      total:              parseFloat(p.total) || 0,
+      sistema:            "Nissan Parts",
+    }));
+
+    res.json(resultado);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  PROXY EXTERNO — evita CORS al llamar al sistema aliado
+//  Agregar en server/index.js ANTES del app.listen(...)
+// ═══════════════════════════════════════════════════════════════
+
+// npm install node-fetch   (si usas Node < 18)
+// Node 18+ tiene fetch nativo — no necesita instalación
+
+app.get("/api/proxy-externo", async (req, res) => {
+  const { url } = req.query;
+
+  if (!url) return res.status(400).json({ error: "Parámetro url requerido" });
+
+  // Seguridad mínima: solo permitir https
+  if (!url.startsWith("https://")) {
+    return res.status(400).json({ error: "Solo se permiten URLs HTTPS" });
+  }
+
+  try {
+    // Node 18+ fetch nativo
+    const response = await fetch(url, {
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+        "Accept": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: `El servidor externo respondió ${response.status}` });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (e) {
+    res.status(502).json({ error: `No se pudo contactar el servidor externo: ${e.message}` });
+  }
+});
+
+
+
+
 // ══
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Backend en http://localhost:${PORT}`));

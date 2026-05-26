@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 25-05-2026 a las 23:29:10
+-- Tiempo de generación: 26-05-2026 a las 18:48:02
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -67,7 +67,13 @@ INSERT INTO `auditoria` (`id_auditoria`, `id_usuario`, `accion`, `detalle`, `ip`
 (24, 12, 'LOGIN', NULL, '::1', '2026-05-25 15:44:11'),
 (25, 10, 'LOGIN', NULL, '::1', '2026-05-25 15:51:42'),
 (26, 12, 'LOGIN', NULL, '::1', '2026-05-25 16:11:51'),
-(27, 11, 'LOGIN', NULL, '::1', '2026-05-25 16:14:15');
+(27, 11, 'LOGIN', NULL, '::1', '2026-05-25 16:14:15'),
+(28, 10, 'LOGIN', NULL, '::1', '2026-05-25 16:45:45'),
+(29, 10, 'LOGIN', NULL, '::1', '2026-05-26 05:20:49'),
+(30, 10, 'LOGIN', NULL, '::1', '2026-05-26 08:34:23'),
+(31, 12, 'LOGIN', NULL, '::1', '2026-05-26 09:50:50'),
+(32, 10, 'LOGIN', NULL, '::1', '2026-05-26 10:45:38'),
+(33, 10, 'LOGIN', NULL, '::1', '2026-05-26 11:32:34');
 
 -- --------------------------------------------------------
 
@@ -197,36 +203,37 @@ CREATE TABLE `pedido` (
   `fecha_creacion` datetime NOT NULL DEFAULT current_timestamp(),
   `prioridad` varchar(50) DEFAULT NULL,
   `observaciones` text DEFAULT NULL,
-  `fecha_entrega_estimada` datetime DEFAULT NULL
+  `fecha_entrega_estimada` datetime DEFAULT NULL,
+  `fecha_actualizacion` datetime DEFAULT NULL ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `pedido`
 --
 
-INSERT INTO `pedido` (`id_pedido`, `id_cliente`, `id_usuario`, `id_estado`, `fecha_creacion`, `prioridad`, `observaciones`, `fecha_entrega_estimada`) VALUES
-(10, 1, 10, 4, '2026-04-16 23:49:49', NULL, NULL, NULL),
-(11, 1, 10, 4, '2026-04-16 23:54:25', NULL, NULL, NULL),
-(12, 1, 10, 4, '2026-04-17 07:46:41', NULL, NULL, NULL),
-(13, 1, 10, 1, '2026-04-17 08:02:01', NULL, NULL, NULL),
-(14, 1, 10, 4, '2026-04-17 08:03:23', NULL, NULL, NULL),
-(15, 1, 10, 1, '2026-04-17 08:48:09', NULL, NULL, NULL),
-(16, 1, 10, 1, '2026-04-17 08:50:10', NULL, NULL, NULL),
-(17, 1, 10, 1, '2026-04-17 09:15:29', NULL, NULL, NULL),
-(18, 1, 10, 4, '2026-04-17 09:31:58', NULL, NULL, NULL),
-(19, 1, 10, 1, '2026-04-17 09:50:27', NULL, NULL, NULL),
-(20, 1, 10, 4, '2026-04-17 09:50:35', NULL, NULL, NULL),
-(21, 1, 10, 4, '2026-04-17 09:53:02', NULL, NULL, NULL),
-(22, 1, 10, 4, '2026-04-17 10:32:46', NULL, NULL, NULL),
-(23, 1, 10, 4, '2026-04-17 10:42:21', NULL, NULL, NULL),
-(24, 1, 10, 4, '2026-04-17 11:20:25', NULL, NULL, NULL),
-(25, 1, 10, 4, '2026-05-20 08:01:43', NULL, NULL, NULL),
-(26, 1, 10, 4, '2026-05-20 08:33:31', NULL, NULL, NULL),
-(27, 1, 10, 4, '2026-05-20 08:41:32', NULL, NULL, NULL),
-(28, 1, 10, 3, '2026-05-20 08:59:03', NULL, NULL, NULL),
-(29, 2, 11, 2, '2026-05-21 14:56:06', NULL, NULL, NULL),
-(30, 2, 11, 1, '2026-05-25 07:22:00', NULL, NULL, NULL),
-(31, 2, 11, 3, '2026-05-25 15:40:35', NULL, NULL, NULL);
+INSERT INTO `pedido` (`id_pedido`, `id_cliente`, `id_usuario`, `id_estado`, `fecha_creacion`, `prioridad`, `observaciones`, `fecha_entrega_estimada`, `fecha_actualizacion`) VALUES
+(10, 1, 10, 4, '2026-04-16 23:49:49', NULL, NULL, NULL, NULL),
+(11, 1, 10, 4, '2026-04-16 23:54:25', NULL, NULL, NULL, NULL),
+(12, 1, 10, 4, '2026-04-17 07:46:41', NULL, NULL, NULL, NULL),
+(13, 1, 10, 1, '2026-04-17 08:02:01', NULL, NULL, NULL, NULL),
+(14, 1, 10, 4, '2026-04-17 08:03:23', NULL, NULL, NULL, NULL),
+(15, 1, 10, 1, '2026-04-17 08:48:09', NULL, NULL, NULL, NULL),
+(16, 1, 10, 1, '2026-04-17 08:50:10', NULL, NULL, NULL, NULL),
+(17, 1, 10, 1, '2026-04-17 09:15:29', NULL, NULL, NULL, NULL),
+(18, 1, 10, 4, '2026-04-17 09:31:58', NULL, NULL, NULL, NULL),
+(19, 1, 10, 1, '2026-04-17 09:50:27', NULL, NULL, NULL, NULL),
+(20, 1, 10, 4, '2026-04-17 09:50:35', NULL, NULL, NULL, NULL),
+(21, 1, 10, 4, '2026-04-17 09:53:02', NULL, NULL, NULL, NULL),
+(22, 1, 10, 4, '2026-04-17 10:32:46', NULL, NULL, NULL, NULL),
+(23, 1, 10, 4, '2026-04-17 10:42:21', NULL, NULL, NULL, NULL),
+(24, 1, 10, 4, '2026-04-17 11:20:25', NULL, NULL, NULL, NULL),
+(25, 1, 10, 4, '2026-05-20 08:01:43', NULL, NULL, NULL, NULL),
+(26, 1, 10, 4, '2026-05-20 08:33:31', NULL, NULL, NULL, NULL),
+(27, 1, 10, 4, '2026-05-20 08:41:32', NULL, NULL, NULL, NULL),
+(28, 1, 10, 3, '2026-05-20 08:59:03', NULL, NULL, NULL, NULL),
+(29, 2, 11, 2, '2026-05-21 14:56:06', NULL, NULL, NULL, NULL),
+(30, 2, 11, 1, '2026-05-25 07:22:00', NULL, NULL, NULL, NULL),
+(31, 2, 11, 3, '2026-05-25 15:40:35', NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -253,7 +260,27 @@ CREATE TABLE `repuesto` (
 INSERT INTO `repuesto` (`id_repuesto`, `nombre`, `descripcion`, `categoria`, `marca`, `modelo_compatible`, `stock`, `precio`, `imagen_url`) VALUES
 (4, 'Filtro de aceite Nissan', 'Para motores 1.6 y 2.0', NULL, NULL, NULL, 2, 0.00, NULL),
 (5, 'Pastillas de freno', 'Alta duración', NULL, NULL, NULL, 9, 0.00, NULL),
-(6, 'Bujías Nissan', 'Originales', NULL, NULL, NULL, 8, 0.00, NULL);
+(6, 'Bujías Nissan', 'Originales', NULL, NULL, NULL, 8, 0.00, NULL),
+(7, 'Amortiguador delantero', 'Amortiguador hidráulico delantero', 'Suspensión', 'Nissan', 'Versa 2020', 15, 320000.00, NULL),
+(8, 'Batería 12V', 'Batería de alto rendimiento', 'Eléctrico', 'Bosch', 'Sentra 2019', 10, 450000.00, NULL),
+(9, 'Radiador', 'Radiador de aluminio', 'Refrigeración', 'Valeo', 'Frontier 2021', 6, 780000.00, NULL),
+(10, 'Filtro de aire', 'Filtro de aire para motor', 'Motor', 'Nissan', 'March 2018', 25, 85000.00, NULL),
+(11, 'Kit de embrague', 'Kit completo de embrague', 'Transmisión', 'Luk', 'Navara 2020', 4, 920000.00, NULL),
+(12, 'Correa de distribución', 'Correa reforzada', 'Motor', 'Gates', 'X-Trail 2019', 12, 210000.00, NULL),
+(13, 'Alternador', 'Alternador original', 'Eléctrico', 'Hitachi', 'NP300 2022', 5, 1150000.00, NULL),
+(14, 'Bombillo LED H4', 'Luces LED blancas', 'Iluminación', 'Philips', 'Versa 2021', 30, 65000.00, NULL),
+(15, 'Disco de freno', 'Disco ventilado delantero', 'Frenos', 'Brembo', 'Sentra 2020', 14, 280000.00, NULL),
+(16, 'Sensor de oxígeno', 'Sensor lambda original', 'Sensores', 'Denso', 'Qashqai 2018', 8, 340000.00, NULL),
+(17, 'Bomba de gasolina', 'Bomba eléctrica de combustible', 'Combustible', 'Bosch', 'March 2019', 7, 520000.00, NULL),
+(18, 'Terminal de dirección', 'Terminal externa', 'Dirección', 'TRW', 'Frontier 2020', 11, 145000.00, NULL),
+(19, 'Filtro de cabina', 'Filtro antipolvo y polen', 'Aire', 'Nissan', 'Kicks 2021', 20, 70000.00, NULL),
+(20, 'Motor de arranque', 'Motor de encendido original', 'Eléctrico', 'Hitachi', 'Sentra 2017', 3, 980000.00, NULL),
+(21, 'Aceite sintético 5W30', 'Aceite premium para motor', 'Lubricantes', 'Mobil', 'Universal', 40, 120000.00, NULL),
+(22, 'Pastillas de freno traseras', 'Juego de pastillas traseras', 'Frenos', 'Bosch', 'Versa 2022', 18, 160000.00, NULL),
+(23, 'Manguera de radiador', 'Manguera resistente al calor', 'Refrigeración', 'Dayco', 'X-Trail 2020', 9, 95000.00, NULL),
+(24, 'Retén de cigüeñal', 'Retén de alta presión', 'Motor', 'Nissan', 'NP300 2021', 13, 50000.00, NULL),
+(25, 'Espejo lateral', 'Espejo eléctrico derecho', 'Carrocería', 'Nissan', 'Kicks 2020', 5, 410000.00, NULL),
+(26, 'Compresor de aire acondicionado', 'Compresor completo A/C', 'Climatización', 'Denso', 'Qashqai 2021', 2, 1850000.00, NULL);
 
 -- --------------------------------------------------------
 
@@ -360,7 +387,7 @@ ALTER TABLE `usuario`
 -- AUTO_INCREMENT de la tabla `auditoria`
 --
 ALTER TABLE `auditoria`
-  MODIFY `id_auditoria` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `id_auditoria` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT de la tabla `cliente`
@@ -396,7 +423,7 @@ ALTER TABLE `pedido`
 -- AUTO_INCREMENT de la tabla `repuesto`
 --
 ALTER TABLE `repuesto`
-  MODIFY `id_repuesto` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_repuesto` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT de la tabla `usuario`
