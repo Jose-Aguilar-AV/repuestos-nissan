@@ -198,7 +198,7 @@ export default function AdminDashboard() {
         {/* Actividad reciente */}
         <div style={s.panel}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-            <h3 style={s.panelTitle}>🕐 Actividad reciente</h3>
+            <h3 style={s.panelTitle}>Actividad reciente</h3>
             <button style={s.btnSm} onClick={() => navigate("/admin/pedidos")}>Ver todos →</button>
           </div>
           {recientes.length === 0 ? (
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
 
         {/* Accesos rápidos */}
         <div style={s.panel}>
-          <h3 style={s.panelTitle}>⚡ Accesos rápidos</h3>
+          <h3 style={s.panelTitle}>Accesos rápidos</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <QuickLink icon="📋" label="Gestionar pedidos"  desc="Ver, editar y cambiar estados" color="#7c3aed" to="/admin/pedidos"   />
             <QuickLink icon="👥" label="Gestionar usuarios" desc="CRUD completo de usuarios"     color="#0ea5e9" to="/admin/usuarios"  />
@@ -242,7 +242,7 @@ export default function AdminDashboard() {
 
       {/* Resumen operativo */}
       <div style={s.panel}>
-        <h3 style={s.panelTitle}>📈 Resumen operativo</h3>
+        <h3 style={s.panelTitle}>Resumen operativo</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
           {[
             {

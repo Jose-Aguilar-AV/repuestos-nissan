@@ -89,11 +89,11 @@ export default function OperadorAnalytics() {
       {/* Header */}
       <div style={s.header}>
         <div>
-          <h1 style={s.title}>📊 Analytics</h1>
+          <h1 style={s.title}>Analytics</h1>
           <p style={s.sub}>Resumen operativo en tiempo real</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button style={s.btnSecondary} onClick={cargar}>🔄 Actualizar</button>
+          <button style={s.btnSecondary} onClick={cargar}>Actualizar</button>
           <button style={s.btnBack} onClick={() => navigate("/operador")}>← Panel</button>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function OperadorAnalytics() {
       <div style={s.row2}>
         {/* Línea pedidos por día */}
         <div style={s.chartBox}>
-          <h3 style={s.chartTitle}>📅 Pedidos últimos 30 días</h3>
+          <h3 style={s.chartTitle}>Pedidos últimos 30 días</h3>
           {porDia.length === 0 ? (
             <p style={s.empty}>Sin datos</p>
           ) : (
@@ -147,7 +147,7 @@ export default function OperadorAnalytics() {
 
         {/* Pie estados */}
         <div style={s.chartBox}>
-          <h3 style={s.chartTitle}>🥧 Distribución por estado</h3>
+          <h3 style={s.chartTitle}>Distribución por estado</h3>
           {estados.length === 0 ? (
             <p style={s.empty}>Sin datos</p>
           ) : (
@@ -216,7 +216,7 @@ export default function OperadorAnalytics() {
 
         {/* Top clientes */}
         <div style={s.chartBox}>
-          <h3 style={s.chartTitle}>👥 Clientes frecuentes</h3>
+          <h3 style={s.chartTitle}>Clientes frecuentes</h3>
           {topClientes.length === 0 ? (
             <p style={s.empty}>Sin datos</p>
           ) : (
@@ -268,7 +268,7 @@ export default function OperadorAnalytics() {
 
       {/* Stock general */}
       <div style={s.chartBox}>
-        <h3 style={s.chartTitle}>📦 Stock actual por repuesto</h3>
+        <h3 style={s.chartTitle}>Stock actual por repuesto</h3>
         {stock.length === 0 ? (
           <p style={s.empty}>Sin datos</p>
         ) : (

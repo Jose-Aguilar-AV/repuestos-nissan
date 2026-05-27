@@ -361,7 +361,7 @@ app.get("/api/repuestos/:id", async (req, res) => {
 });
 
 // RF10 FIX: POST /api/repuestos — crear repuesto (solo admin)
-app.post("/api/repuestos", verificarToken, soloAdmin, async (req, res) => {
+app.post("/api/repuestos", verificarToken, operadorOAdmin, async (req, res) => {
   try {
     const { nombre, descripcion, categoria, marca, modelo_compatible, stock, precio, imagen_url } = req.body;
     if (!nombre) return res.status(400).json({ error: "Nombre requerido" });
@@ -1023,6 +1023,35 @@ app.put("/api/turnos/pedido/:id_pedido/reasignar", verificarToken, soloAdmin, as
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// PATCH /api/repuestos/:id/stock — ajusta stock con delta (+/-)
+app.patch("/api/repuestos/:id/stock", verificarToken, operadorOAdmin, async (req, res) => {
+  try {
+    const { delta } = req.body;
+    if (delta === undefined || isNaN(Number(delta)))
+      return res.status(400).json({ error: "delta requerido (número)" });
+
+    const [rep] = await query(
+      "SELECT stock FROM repuesto WHERE id_repuesto=?", [req.params.id]
+    );
+    if (!rep) return res.status(404).json({ error: "Repuesto no encontrado" });
+
+    const nuevoStock = rep.stock + Number(delta);
+    if (nuevoStock < 0)
+      return res.status(400).json({ error: "El stock no puede quedar negativo" });
+
+    await query(
+      "UPDATE repuesto SET stock=? WHERE id_repuesto=?",
+      [nuevoStock, req.params.id]
+    );
+    await auditar(
+      req.user.id,
+      "AJUSTE_STOCK",
+      `Repuesto #${req.params.id}: ${delta > 0 ? "+" : ""}${delta} → stock ${nuevoStock}`,
+      req.ip
+    );
+    res.json({ mensaje: "Stock actualizado", stock: nuevoStock });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // ══
 const PORT = process.env.PORT || 3000;

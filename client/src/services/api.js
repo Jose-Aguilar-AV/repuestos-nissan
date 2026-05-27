@@ -45,8 +45,10 @@ export const register = (data)             => post("/register", data);
 // ═════════════════════════════════════════════════════════════════════════════
 export const getRepuestos   = ()         => get("/repuestos");
 export const getRepuesto    = (id)       => get(`/repuestos/${id}`);
-// FIX: getStock — antes inexistente; el backend devuelve el repuesto completo con stock
 export const getStock       = (id)       => get(`/repuestos/${id}`);
+export const createRepuesto = (data)     => post("/repuestos", data);
+export const updateRepuesto = (id, data) => put(`/repuestos/${id}`, data);
+export const ajustarStock   = (id, delta) => patch(`/repuestos/${id}/stock`, { delta });
 export const editarRepuesto = (id, data) => put(`/repuestos/${id}`, data);
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -97,3 +99,4 @@ export const getPedidosPorDia    = (filtros = {}) => get("/analytics/pedidos-por
 export const getTopClientes      = ()             => get("/analytics/top-clientes");
 export const getStockAnalytics   = ()             => get("/analytics/stock");
 export const getEstadosAnalytics = ()             => get("/analytics/estados");
+

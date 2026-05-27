@@ -17,6 +17,8 @@ import OperadorDashboard   from "./pages/operador/OperadorDashboard";
 import OperadorPedidos     from "./pages/operador/OperadorPedidos";
 import OperadorCrearPedido from "./pages/operador/OperadorCrearPedido";
 import OperadorAnalytics   from "./pages/operador/OperadorAnalytics";
+import OperadorRepuestos from "./pages/operador/OperadorRepuestos";
+
 
 // Panel Admin
 import AdminDashboard  from "./pages/admin/AdminDashboard";
@@ -83,6 +85,9 @@ function App() {
             <OperadorAnalytics />
           </ProtectedRoute>
         } />
+
+        <Route path="/operador/repuestos" element={<OperadorRepuestos />} />
+
 
         {/* ── Admin ─────────────────────────────────────────── */}
         <Route path="/admin" element={
