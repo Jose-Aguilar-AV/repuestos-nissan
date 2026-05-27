@@ -1,8 +1,6 @@
 // server/middlewares/auth.js
-// RF2 FIX: SECRET sin fallback hardcodeado
 const jwt = require("jsonwebtoken");
 
-// SECRET solo desde variable de entorno — sin || "secreto123"
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET) {
   console.error("❌ JWT_SECRET no definido en .env");
@@ -34,10 +32,13 @@ function soloRol(...roles) {
   };
 }
 
-const soloAdmin      = soloRol("ADMINISTRADOR");
-const soloOperador   = soloRol("OPERADOR", "ADMINISTRADOR");
-const soloCliente    = soloRol("CLIENTE");
-const operadorOAdmin = soloRol("OPERADOR", "ADMINISTRADOR");
+const soloAdmin         = soloRol("ADMINISTRADOR");
+const soloOperador      = soloRol("OPERADOR", "ADMINISTRADOR");
+const soloCliente       = soloRol("CLIENTE");
+const operadorOAdmin    = soloRol("OPERADOR", "ADMINISTRADOR");
+
+// NUEVO: operador puede actuar como cliente (carrito, mis-pedidos, crear pedido propio)
+const clienteOOperador  = soloRol("CLIENTE", "OPERADOR", "ADMINISTRADOR");
 
 module.exports = {
   verificarToken,
@@ -46,4 +47,5 @@ module.exports = {
   soloCliente,
   operadorOAdmin,
   soloRol,
+  clienteOOperador,   // <-- exportar el nuevo
 };

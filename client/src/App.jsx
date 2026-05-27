@@ -4,19 +4,19 @@ import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Páginas públicas / cliente
-import Home          from "./pages/Home";
-import Repuestos     from "./pages/Repuestos";
-import CrearPedido   from "./pages/CrearPedido";
-import Pedidos       from "./pages/Pedidos";
-import Login         from "./pages/login";
-import PedidoDetalle from "./pages/PedidoDetalle";
+import Home            from "./pages/Home";
+import Repuestos       from "./pages/Repuestos";
+import CrearPedido     from "./pages/CrearPedido";
+import Pedidos         from "./pages/Pedidos";
+import Login           from "./pages/login";
+import PedidoDetalle   from "./pages/PedidoDetalle";
 import DetalleProducto from "./pages/DetalleProducto";
 
 // Panel Operador
-import OperadorDashboard  from "./pages/operador/OperadorDashboard";
-import OperadorPedidos    from "./pages/operador/OperadorPedidos";
+import OperadorDashboard   from "./pages/operador/OperadorDashboard";
+import OperadorPedidos     from "./pages/operador/OperadorPedidos";
 import OperadorCrearPedido from "./pages/operador/OperadorCrearPedido";
-import OperadorAnalytics  from "./pages/operador/OperadorAnalytics";
+import OperadorAnalytics   from "./pages/operador/OperadorAnalytics";
 
 // Panel Admin
 import AdminDashboard  from "./pages/admin/AdminDashboard";
@@ -24,6 +24,7 @@ import AdminPedidos    from "./pages/admin/AdminPedidos";
 import AdminUsuarios   from "./pages/admin/AdminUsuarios";
 import AdminAnalytics  from "./pages/admin/AdminAnalytics";
 import AdminRepuestos  from "./pages/admin/AdminRepuestos";
+import GestionTurnos   from "./pages/admin/GestionTurnos";   // ← NUEVO
 
 function App() {
   return (
@@ -31,25 +32,27 @@ function App() {
       <Navbar />
       <Routes>
         {/* ── Públicas ──────────────────────────────────────── */}
-        <Route path="/login"     element={<Login />} />
-        <Route path="/"          element={<Home />} />
-        <Route path="/repuestos" element={<Repuestos />} />
+        <Route path="/login"        element={<Login />} />
+        <Route path="/"             element={<Home />} />
+        <Route path="/repuestos"    element={<Repuestos />} />
         <Route path="/repuesto/:id" element={<DetalleProducto />} />
 
-        {/* ── Cliente ───────────────────────────────────────── */}
+        {/* ── Cliente + Operador ────────────────────────────── */}
+        {/* OPERADOR puede actuar como cliente: crear pedido propio,
+            ver su carrito y sus pedidos                          */}
         <Route path="/pedido/nuevo" element={
-          <ProtectedRoute roles={["CLIENTE"]}>
+          <ProtectedRoute roles={["CLIENTE", "OPERADOR"]}>
             <CrearPedido />
           </ProtectedRoute>
         } />
         <Route path="/mis-pedidos" element={
-          <ProtectedRoute roles={["CLIENTE"]}>
+          <ProtectedRoute roles={["CLIENTE", "OPERADOR"]}>
             <Pedidos />
           </ProtectedRoute>
         } />
         {/* alias legacy */}
         <Route path="/pedidos" element={
-          <ProtectedRoute roles={["CLIENTE"]}>
+          <ProtectedRoute roles={["CLIENTE", "OPERADOR"]}>
             <Pedidos />
           </ProtectedRoute>
         } />
@@ -105,6 +108,11 @@ function App() {
         <Route path="/admin/repuestos" element={
           <ProtectedRoute roles={["ADMINISTRADOR"]}>
             <AdminRepuestos />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/turnos" element={         
+          <ProtectedRoute roles={["ADMINISTRADOR"]}>
+            <GestionTurnos />
           </ProtectedRoute>
         } />
 

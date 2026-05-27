@@ -73,6 +73,7 @@ function soloRol(...roles) {
 }
 const soloAdmin      = soloRol("ADMINISTRADOR");
 const operadorOAdmin = soloRol("OPERADOR", "ADMINISTRADOR");
+const clienteOOperador = soloRol("CLIENTE", "OPERADOR", "ADMINISTRADOR");
 
 // Auditoría automática
 async function auditar(id_usuario, accion, detalle, ip) {
@@ -82,6 +83,25 @@ async function auditar(id_usuario, accion, detalle, ip) {
       [id_usuario, accion, detalle || null, ip || null]
     );
   } catch { /* silencioso */ }
+}
+
+async function obtenerOperadorDeTurno() {
+  const ahora      = new Date();
+  const horaActual = ahora.toTimeString().slice(0, 8); // "HH:MM:SS"
+  console.log("🕐 Hora actual:", horaActual);
+  const rows = await query(
+    `SELECT t.id_turno, t.nombre_turno, t.id_operador
+     FROM turnos_operadores t
+     WHERE t.activo = 1
+       AND t.id_operador IS NOT NULL
+       AND ? >= t.hora_inicio
+       AND ? <  t.hora_fin
+     ORDER BY t.hora_inicio
+     LIMIT 1`,
+    [horaActual, horaActual]
+  );
+  console.log("🎯 Turno encontrado:", rows[0] || "NINGUNO");
+  return rows[0] || null; // { id_turno, nombre_turno, id_operador }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -147,6 +167,26 @@ app.post("/api/login", async (req, res) => {
       [user.id]
     );
 
+    console.log("🔍 user.id_cliente RAW:", user.id_cliente, typeof user.id_cliente);
+
+    // Si el usuario no tiene registro en cliente, crearlo automáticamente
+    let id_cliente = user.id_cliente;
+    if (!id_cliente) {
+      console.log("🔍 Creando/buscando cliente para usuario:", user.id);
+      const existe = await query(
+        "SELECT id_cliente FROM cliente WHERE id_usuario = ?", [user.id]
+      );
+      if (existe.length) {
+        id_cliente = existe[0].id_cliente;
+      } else {
+        const nuevo = await query(
+          "INSERT INTO cliente (nombre, id_usuario) VALUES (?, ?)",
+          [user.nombre, user.id]
+        );
+        id_cliente = nuevo.insertId;
+      }
+    }
+
     const token = jwt.sign(
       { id: user.id, rol: user.rol, nombre: user.nombre },
       SECRET,
@@ -159,7 +199,7 @@ app.post("/api/login", async (req, res) => {
       token,
       user: {
         id:         user.id,
-        id_cliente: user.id_cliente || null,
+        id_cliente: id_cliente,
         nombre:     user.nombre,
         correo:     user.correo,
         rol:        user.rol,
@@ -391,16 +431,23 @@ app.post("/api/pedidos", verificarToken, async (req, res) => {
       return res.status(400).json({ error: "Sin productos" });
 
     // CLIENTE solo puede crear pedido para sí mismo
-    if (req.user.rol === "CLIENTE") {
-      const [cli] = await query("SELECT id_usuario FROM cliente WHERE id_cliente=?", [id_cliente]);
+    if (req.user.rol === "CLIENTE" || req.user.rol === "OPERADOR") {
+      const [cli] = await query(
+        "SELECT id_usuario FROM cliente WHERE id_cliente=?",
+        [id_cliente]
+      );
       if (!cli || String(cli.id_usuario) !== String(id_usuario))
         return res.status(403).json({ error: "Solo puedes crear pedidos a tu cuenta" });
     }
 
+    const turnoActivo = await obtenerOperadorDeTurno();
+    const idOperadorAsignado = turnoActivo?.id_operador || null;
+
     const r = await query(
-      `INSERT INTO pedido (id_cliente, id_usuario, id_estado, prioridad, observaciones, fecha_entrega_estimada)
-       VALUES (?,?,1,?,?,?)`,
-      [id_cliente, id_usuario, prioridad||null, observaciones||null, fecha_entrega_estimada||null]
+      `INSERT INTO pedido
+         (id_cliente, id_usuario, id_estado, prioridad, observaciones, fecha_entrega_estimada, id_operador_asignado)
+       VALUES (?,?,1,?,?,?,?)`,
+      [id_cliente, id_usuario, prioridad||null, observaciones||null, fecha_entrega_estimada||null, idOperadorAsignado]
     );
     const idPedido = r.insertId;
 
@@ -455,9 +502,10 @@ app.get("/api/pedidos", verificarToken, async (req, res) => {
     if (rol === "CLIENTE") {
       sql += " AND p.id_usuario = ?"; params.push(uid);
     } else if (rol === "OPERADOR") {
-      sql += " AND p.id_usuario = ?"; params.push(uid);
+      sql += " AND (p.id_usuario = ? OR p.id_operador_asignado = ?)";
+      params.push(uid, uid);
     }
-    // ADMIN ve todos
+        // ADMIN ve todos
 
     // RF8 FIX: usar nombre de campo correcto
     if (estado)       { sql += " AND p.id_estado = ?";              params.push(estado); }
@@ -522,7 +570,7 @@ app.put("/api/pedidos/:id/estado", verificarToken, async (req, res) => {
     if (!id_estado) return res.status(400).json({ error: "id_estado requerido" });
 
     const [pedido] = await query(
-      "SELECT id_estado, id_usuario FROM pedido WHERE id_pedido=?", [id]
+      "SELECT id_estado, id_usuario, id_operador_asignado FROM pedido WHERE id_pedido=?", [id]
     );
     if (!pedido) return res.status(404).json({ error: "Pedido no encontrado" });
 
@@ -535,9 +583,14 @@ app.put("/api/pedidos/:id/estado", verificarToken, async (req, res) => {
 
     if (rol === "CLIENTE")
       return res.status(403).json({ error: "Clientes no pueden cambiar estados" });
-    if (rol === "OPERADOR" && String(pedido.id_usuario) !== String(uid))
-      return res.status(403).json({ error: "Solo puedes cambiar estados de tus pedidos" });
-
+    if (rol === "OPERADOR") {
+      const esCreador   = String(pedido.id_usuario) === String(uid);
+      const esAsignado  = String(pedido.id_operador_asignado) === String(uid);
+      // Si lo creó como cliente (está en id_usuario pero no es su pedido operacional)
+      // no puede cambiar estado. Solo puede si es el operador asignado.
+      if (!esAsignado)
+        return res.status(403).json({ error: "No eres el operador asignado a este pedido" });
+    }
     await query("UPDATE pedido SET id_estado=? WHERE id_pedido=?", [id_estado, id]);
     await query(
       `INSERT INTO historial_estado (id_pedido, id_usuario, id_estado_anterior, id_estado_nuevo)
@@ -558,7 +611,7 @@ app.put("/api/pedidos/:id", verificarToken, async (req, res) => {
     const { detalles, prioridad, observaciones } = req.body;
 
     const [pedido] = await query(
-      "SELECT id_estado, id_usuario FROM pedido WHERE id_pedido=?", [id]
+      "SELECT id_estado, id_usuario, id_operador_asignado FROM pedido WHERE id_pedido=?", [id]
     );
     if (!pedido) return res.status(404).json({ error: "Pedido no encontrado" });
     if ([3,4].includes(pedido.id_estado))
@@ -566,8 +619,11 @@ app.put("/api/pedidos/:id", verificarToken, async (req, res) => {
 
     if (rol === "CLIENTE" && String(pedido.id_usuario) !== String(uid))
       return res.status(403).json({ error: "No es tu pedido" });
-    if (rol === "OPERADOR" && String(pedido.id_usuario) !== String(uid))
-      return res.status(403).json({ error: "No es tu pedido" });
+    if (rol === "OPERADOR") {
+      const esAsignado = String(pedido.id_operador_asignado) === String(uid);
+      if (!esAsignado)
+        return res.status(403).json({ error: "No eres el operador asignado a este pedido" });
+    }
 
     if (detalles?.length) {
       const detallesViejos = await query(
@@ -615,7 +671,7 @@ app.put("/api/pedidos/:id/cancelar", verificarToken, async (req, res) => {
     const rol = req.user.rol;
 
     const [pedido] = await query(
-      "SELECT id_estado, id_usuario FROM pedido WHERE id_pedido=?", [id]
+      "SELECT id_estado, id_usuario, id_operador_asignado FROM pedido WHERE id_pedido=?", [id]
     );
     if (!pedido) return res.status(404).json({ error: "Pedido no encontrado" });
     if (pedido.id_estado === 4) return res.status(400).json({ error: "Ya está cancelado" });
@@ -623,9 +679,11 @@ app.put("/api/pedidos/:id/cancelar", verificarToken, async (req, res) => {
 
     if (rol === "CLIENTE" && String(pedido.id_usuario) !== String(uid))
       return res.status(403).json({ error: "No es tu pedido" });
-    if (rol === "OPERADOR" && String(pedido.id_usuario) !== String(uid))
-      return res.status(403).json({ error: "Solo puedes cancelar tus propios pedidos" });
-
+    if (rol === "OPERADOR") {
+      const esAsignado = String(pedido.id_operador_asignado) === String(uid);
+      if (!esAsignado)
+        return res.status(403).json({ error: "No eres el operador asignado a este pedido" });
+    }
     const detalles = await query(
       "SELECT id_repuesto, cantidad FROM detalle_pedido WHERE id_pedido=?", [id]
     );
@@ -893,7 +951,77 @@ app.get("/api/proxy-externo", async (req, res) => {
   }
 });
 
-
+// ── BLOQUE 3 ─────────────────────────────────────────────────
+// Rutas de turnos (gestión admin + reasignación).
+// Agrega esto antes del app.listen(...) final.
+ 
+// GET /api/turnos — lista todos los turnos con su operador
+app.get("/api/turnos", verificarToken, soloAdmin, async (req, res) => {
+  try {
+    const rows = await query(
+      `SELECT t.*, u.nombre AS nombre_operador
+       FROM turnos_operadores t
+       LEFT JOIN usuario u ON u.id = t.id_operador
+       ORDER BY t.hora_inicio`
+    );
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+ 
+// GET /api/turnos/operadores — lista operadores disponibles para los <select>
+app.get("/api/turnos/operadores", verificarToken, soloAdmin, async (req, res) => {
+  try {
+    const rows = await query(
+      `SELECT id AS id_usuario, nombre, correo AS email
+       FROM usuario
+       WHERE rol IN ('OPERADOR', 'ADMINISTRADOR')
+         AND estado = 'ACTIVO'
+       ORDER BY nombre`
+    );
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+ 
+// PUT /api/turnos/:id — admin actualiza horas y/o operador de un turno
+app.put("/api/turnos/:id", verificarToken, soloAdmin, async (req, res) => {
+  try {
+    const { id_operador, hora_inicio, hora_fin, activo } = req.body;
+    const rows = await query(
+      `UPDATE turnos_operadores
+       SET id_operador = ?,
+           hora_inicio = ?,
+           hora_fin    = ?,
+           activo      = COALESCE(?, activo)
+       WHERE id_turno = ?`,
+      [id_operador || null, hora_inicio, hora_fin, activo ?? null, req.params.id]
+    );
+    if (!rows.affectedRows)
+      return res.status(404).json({ error: "Turno no encontrado" });
+    // devolver el turno actualizado
+    const [updated] = await query(
+      `SELECT t.*, u.nombre AS nombre_operador
+       FROM turnos_operadores t
+       LEFT JOIN usuario u ON u.id = t.id_operador
+       WHERE t.id_turno = ?`,
+      [req.params.id]
+    );
+    res.json(updated);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+ 
+// PUT /api/turnos/pedido/:id_pedido/reasignar — admin reasigna operador de un pedido
+app.put("/api/turnos/pedido/:id_pedido/reasignar", verificarToken, soloAdmin, async (req, res) => {
+  try {
+    const { id_operador } = req.body;
+    const rows = await query(
+      `UPDATE pedido SET id_operador_asignado = ? WHERE id_pedido = ?`,
+      [id_operador || null, req.params.id_pedido]
+    );
+    if (!rows.affectedRows)
+      return res.status(404).json({ error: "Pedido no encontrado" });
+    res.json({ mensaje: "Operador reasignado correctamente" });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 
 // ══

@@ -235,6 +235,7 @@ export default function AdminDashboard() {
             <QuickLink icon="👥" label="Gestionar usuarios" desc="CRUD completo de usuarios"     color="#0ea5e9" to="/admin/usuarios"  />
             <QuickLink icon="🔧" label="Gestionar repuestos" desc="Stock, precios y catálogo"    color="#10b981" to="/admin/repuestos" />
             <QuickLink icon="📊" label="Analytics globales" desc="Métricas y tendencias"         color="#f59e0b" to="/admin/analytics" />
+            <QuickLink icon="⏰" label="Gestión de turnos"  desc="Asignar operadores por horario" color="#8b5cf6" to="/admin/turnos"    />
           </div>
         </div>
       </div>
