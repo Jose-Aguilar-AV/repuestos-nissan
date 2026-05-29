@@ -1,9 +1,3 @@
-// client/src/services/api.js
-// Capa de datos centralizada con JWT automático
-// Apunta a server/index.js via proxy Vite (localhost:3000)
-// FIX: añadido getStock() que faltaba (usada en DetalleProducto.jsx)
-// FIX: funciones analytics aceptan filtros opcionales { fecha_desde, fecha_hasta }
-
 const API = import.meta.env.VITE_API_URL || "/api";
 
 // ── Helper base ───────────────────────────────────────────────────────────────

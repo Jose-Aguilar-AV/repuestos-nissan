@@ -1,5 +1,3 @@
-// client/src/pages/admin/AdminAnalytics.jsx
-// RF9 FIX: exportación PDF (jsPDF) y Excel (SheetJS), filtros por rango de fechas
 import { useEffect, useState} from "react";
 import { useNavigate } from "react-router-dom";
 import {

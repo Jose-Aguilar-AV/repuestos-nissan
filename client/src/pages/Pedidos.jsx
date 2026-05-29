@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMisPedidos } from "../services/api";
 
-/* ── Toast (mismo sistema que CrearPedido) ───────────────────── */
 function Toast({ toasts, onClose }) {
   return (
     <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 1000, display: "flex", flexDirection: "column", gap: 10, pointerEvents: "none" }}>

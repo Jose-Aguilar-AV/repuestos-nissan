@@ -1,5 +1,3 @@
-// server/index.js  ─  Backend corregido RF1–RF10
-// ──────────────────────────────────────────────────────────────
 require("dotenv").config();
 
 const express = require("express");
@@ -12,7 +10,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// RF2 FIX: JWT_SECRET solo desde .env — sin fallback hardcodeado
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET) {
   console.error("❌ JWT_SECRET no definido en .env. Abortando.");
@@ -28,10 +25,9 @@ const db = mysql.createConnection({
 });
 db.connect(err => {
   if (err) throw err;
-  console.log("✅ MySQL conectado");
+  console.log("MySQL conectado");
 });
 
-// ── HELPERS ───────────────────────────────────────────────────
 function query(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.query(sql, params, (err, result) => {
@@ -41,8 +37,6 @@ function query(sql, params = []) {
   });
 }
 
-// ── MIDDLEWARES ───────────────────────────────────────────────
-// RF2 FIX: verificarToken valida también que el usuario siga ACTIVO
 async function verificarToken(req, res, next) {
   const auth = req.headers["authorization"];
   if (!auth?.startsWith("Bearer "))
@@ -75,7 +69,6 @@ const soloAdmin      = soloRol("ADMINISTRADOR");
 const operadorOAdmin = soloRol("OPERADOR", "ADMINISTRADOR");
 const clienteOOperador = soloRol("CLIENTE", "OPERADOR", "ADMINISTRADOR");
 
-// Auditoría automática
 async function auditar(id_usuario, accion, detalle, ip) {
   try {
     await query(
@@ -104,9 +97,7 @@ async function obtenerOperadorDeTurno() {
   return rows[0] || null; // { id_turno, nombre_turno, id_operador }
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  AUTH
-// ═══════════════════════════════════════════════════════════════
+
 
 // LOGIN ─ RF2: bloqueo por intentos fallidos
 app.post("/api/login", async (req, res) => {
@@ -142,10 +133,8 @@ app.post("/api/login", async (req, res) => {
 
     const match = await bcrypt.compare(password.trim(), user.contrasena_hash);
     if (!match) {
-      // RF2: Incrementar intentos fallidos
       const nuevosIntentos = (user.intentos_fallidos || 0) + 1;
       if (nuevosIntentos >= 3) {
-        // Bloquear por 15 minutos
         await query(
           "UPDATE usuario SET intentos_fallidos=?, bloqueado_hasta=DATE_ADD(NOW(), INTERVAL 15 MINUTE) WHERE id=?",
           [nuevosIntentos, user.id]
@@ -161,7 +150,6 @@ app.post("/api/login", async (req, res) => {
       return res.status(401).json({ error: "Credenciales incorrectas" });
     }
 
-    // Login exitoso → resetear intentos
     await query(
       "UPDATE usuario SET intentos_fallidos=0, bloqueado_hasta=NULL WHERE id=?",
       [user.id]
@@ -211,7 +199,6 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// REGISTRO ─ RF1: agrega celular, valida email y contraseña
 app.post("/api/register", async (req, res) => {
   try {
     const { nombre, correo, password, celular } = req.body;
@@ -245,9 +232,6 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════
-//  USUARIOS  (admin)
-// ═══════════════════════════════════════════════════════════════
 
 app.get("/api/usuarios", verificarToken, soloAdmin, async (req, res) => {
   try {
@@ -342,9 +326,6 @@ app.post("/api/clientes", verificarToken, operadorOAdmin, async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════
-//  REPUESTOS  ─  RF10: POST y DELETE agregados, protegidos soloAdmin
-// ═══════════════════════════════════════════════════════════════
 
 app.get("/api/repuestos", async (req, res) => {
   try {
@@ -414,12 +395,7 @@ app.delete("/api/repuestos/:id", verificarToken, soloAdmin, async (req, res) => 
   }
 });
 
-// ═══════════════════════════════════════════════════════════════
-//  PEDIDOS  ─  RF4, RF5
-// ═══════════════════════════════════════════════════════════════
 
-// RF4 FIX: guardar precio_unitario en detalle_pedido
-// RF5 FIX: evitar duplicados con INSERT ... ON DUPLICATE KEY UPDATE
 app.post("/api/pedidos", verificarToken, async (req, res) => {
   try {
     const { id_cliente, detalles, prioridad, observaciones, fecha_entrega_estimada } = req.body;
@@ -430,7 +406,6 @@ app.post("/api/pedidos", verificarToken, async (req, res) => {
     if (!detalles?.length)
       return res.status(400).json({ error: "Sin productos" });
 
-    // CLIENTE solo puede crear pedido para sí mismo
     if (req.user.rol === "CLIENTE" || req.user.rol === "OPERADOR") {
       const [cli] = await query(
         "SELECT id_usuario FROM cliente WHERE id_cliente=?",
@@ -451,7 +426,6 @@ app.post("/api/pedidos", verificarToken, async (req, res) => {
     );
     const idPedido = r.insertId;
 
-    // RF4 FIX: guardar precio_unitario; RF5 FIX: ON DUPLICATE KEY UPDATE cantidad
     for (const d of detalles) {
       const [rep] = await query("SELECT stock, precio FROM repuesto WHERE id_repuesto=?", [d.id_repuesto]);
       if (!rep || rep.stock < d.cantidad)
@@ -479,11 +453,9 @@ app.post("/api/pedidos", verificarToken, async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: e.message }); }
 });
 
-// RF5 FIX: filtro correcto estado/fecha; RF8 FIX: acepta estado, fecha_desde, fecha_hasta
-// RF8 FIX: búsqueda por nombre de cliente y por ID de pedido
+
 app.get("/api/pedidos", verificarToken, async (req, res) => {
   try {
-    // RF8 FIX: parámetros corregidos: estado (no id_estado), fecha_desde, fecha_hasta
     const { estado, fecha_desde, fecha_hasta, id_cliente, busqueda, limite } = req.query;
     const rol  = req.user.rol;
     const uid  = req.user.id;
@@ -505,15 +477,12 @@ app.get("/api/pedidos", verificarToken, async (req, res) => {
       sql += " AND (p.id_usuario = ? OR p.id_operador_asignado = ?)";
       params.push(uid, uid);
     }
-        // ADMIN ve todos
 
-    // RF8 FIX: usar nombre de campo correcto
     if (estado)       { sql += " AND p.id_estado = ?";              params.push(estado); }
     if (fecha_desde)  { sql += " AND DATE(p.fecha_creacion) >= ?";  params.push(fecha_desde); }
     if (fecha_hasta)  { sql += " AND DATE(p.fecha_creacion) <= ?";  params.push(fecha_hasta); }
     if (id_cliente && rol !== "CLIENTE") { sql += " AND p.id_cliente = ?"; params.push(id_cliente); }
 
-    // RF8 FIX: búsqueda por nombre de cliente o ID de pedido
     if (busqueda) {
       sql += " AND (c.nombre LIKE ? OR CAST(p.id_pedido AS CHAR) LIKE ?)";
       params.push(`%${busqueda}%`, `%${busqueda}%`);
@@ -586,8 +555,7 @@ app.put("/api/pedidos/:id/estado", verificarToken, async (req, res) => {
     if (rol === "OPERADOR") {
       const esCreador   = String(pedido.id_usuario) === String(uid);
       const esAsignado  = String(pedido.id_operador_asignado) === String(uid);
-      // Si lo creó como cliente (está en id_usuario pero no es su pedido operacional)
-      // no puede cambiar estado. Solo puede si es el operador asignado.
+
       if (!esAsignado)
         return res.status(403).json({ error: "No eres el operador asignado a este pedido" });
     }
@@ -743,9 +711,7 @@ app.get("/api/mis-pedidos", verificarToken, async (req, res) => {
   } catch (e) { res.status(500).json(e); }
 });
 
-// ═══════════════════════════════════════════════════════════════
-//  ANALYTICS  ─  RF9: filtros por rango de fechas
-// ═══════════════════════════════════════════════════════════════
+
 
 app.get("/api/analytics/resumen", verificarToken, operadorOAdmin, async (req, res) => {
   try {
@@ -854,9 +820,7 @@ app.get("/api/analytics/estados", verificarToken, operadorOAdmin, async (req, re
   } catch (e) { res.status(500).json(e); }
 });
 
-// ═══════════════════════════════════════════════════════════════
-//  ESTADOS
-// ═══════════════════════════════════════════════════════════════
+
 app.get("/api/estados", async (req, res) => {
   try {
     res.json(await query("SELECT * FROM estado_pedido ORDER BY id_estado ASC"));
@@ -864,9 +828,7 @@ app.get("/api/estados", async (req, res) => {
 });
 
 
-// Agregar en server/index.js
-// Endpoint público para integración con sistemas externos
-// Devuelve pedidos en formato compatible con la API del sistema aliado
+
 
 app.get("/api/pedidos-externos", (req, res) => {
   const sql = `
@@ -913,26 +875,18 @@ app.get("/api/pedidos-externos", (req, res) => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════
-//  PROXY EXTERNO — evita CORS al llamar al sistema aliado
-//  Agregar en server/index.js ANTES del app.listen(...)
-// ═══════════════════════════════════════════════════════════════
 
-// npm install node-fetch   (si usas Node < 18)
-// Node 18+ tiene fetch nativo — no necesita instalación
 
 app.get("/api/proxy-externo", async (req, res) => {
   const { url } = req.query;
 
   if (!url) return res.status(400).json({ error: "Parámetro url requerido" });
 
-  // Seguridad mínima: solo permitir https
   if (!url.startsWith("https://")) {
     return res.status(400).json({ error: "Solo se permiten URLs HTTPS" });
   }
 
   try {
-    // Node 18+ fetch nativo
     const response = await fetch(url, {
       headers: {
         "ngrok-skip-browser-warning": "true",
@@ -951,11 +905,7 @@ app.get("/api/proxy-externo", async (req, res) => {
   }
 });
 
-// ── BLOQUE 3 ─────────────────────────────────────────────────
-// Rutas de turnos (gestión admin + reasignación).
-// Agrega esto antes del app.listen(...) final.
- 
-// GET /api/turnos — lista todos los turnos con su operador
+
 app.get("/api/turnos", verificarToken, soloAdmin, async (req, res) => {
   try {
     const rows = await query(
@@ -968,7 +918,6 @@ app.get("/api/turnos", verificarToken, soloAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
  
-// GET /api/turnos/operadores — lista operadores disponibles para los <select>
 app.get("/api/turnos/operadores", verificarToken, soloAdmin, async (req, res) => {
   try {
     const rows = await query(
@@ -982,7 +931,6 @@ app.get("/api/turnos/operadores", verificarToken, soloAdmin, async (req, res) =>
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
  
-// PUT /api/turnos/:id — admin actualiza horas y/o operador de un turno
 app.put("/api/turnos/:id", verificarToken, soloAdmin, async (req, res) => {
   try {
     const { id_operador, hora_inicio, hora_fin, activo } = req.body;
@@ -997,7 +945,6 @@ app.put("/api/turnos/:id", verificarToken, soloAdmin, async (req, res) => {
     );
     if (!rows.affectedRows)
       return res.status(404).json({ error: "Turno no encontrado" });
-    // devolver el turno actualizado
     const [updated] = await query(
       `SELECT t.*, u.nombre AS nombre_operador
        FROM turnos_operadores t
@@ -1023,7 +970,6 @@ app.put("/api/turnos/pedido/:id_pedido/reasignar", verificarToken, soloAdmin, as
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// PATCH /api/repuestos/:id/stock — ajusta stock con delta (+/-)
 app.patch("/api/repuestos/:id/stock", verificarToken, operadorOAdmin, async (req, res) => {
   try {
     const { delta } = req.body;

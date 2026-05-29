@@ -1,6 +1,3 @@
-// client/src/pages/DetalleProducto.jsx
-// RF5: página de ficha completa de un repuesto
-// Ruta: /repuesto/:id  (agregar en App.jsx)
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getRepuesto } from "../services/api";

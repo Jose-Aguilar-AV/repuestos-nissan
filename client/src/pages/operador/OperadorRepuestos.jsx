@@ -1,13 +1,3 @@
-// pages/operador/OperadorRepuestos.jsx
-//
-// Requiere en services/api.js:
-//   getRepuestos()            → GET  /repuestos
-//   createRepuesto(data)      → POST /repuestos
-//   updateRepuesto(id, data)  → PUT  /repuestos/:id
-//   ajustarStock(id, delta)   → PATCH /repuestos/:id/stock  { delta: number }
-//
-// Adapta los nombres a los que ya uses en tu API.
-
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
